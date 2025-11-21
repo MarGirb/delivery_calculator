@@ -262,7 +262,7 @@ paths:
           nullable: true
           example: поселок Совхоза Крёкшино
       - name: settlement_key_id
-        # новый Параметр 
+        #новый Параметр 
         in: query
         required: false
         x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement_key_id ИЛИ city_key_id
