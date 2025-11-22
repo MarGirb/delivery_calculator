@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: LIME-SHOP GateWay specification
-  description: Добавляемые и изменяемые методы API монолита при интеграции с Delivery Calc.   В описании существующих методов ддобавляемые поля отмечены #новый параметр За основу взят OpenAPI spec as is (версия от 20/09/2025)
+  title: LIME-SHOP + Delivery Calc Monolith API
+  description: За основу взят OpenAPI spec as is (версия от 20/09/2025). Добавляемые и изменяемые методы API монолита при интеграции с Delivery Calc.   В описании существующих методов ддобавляемые поля отмечены
   version: v1
 servers:
 # Added by API Auto Mocking Plugin
@@ -257,7 +257,7 @@ paths:
         required: false
         description: Населенный пункт
         # новый Параметр
-        schema: 
+        schema:
           type: string
           nullable: true
           example: поселок Совхоза Крёкшино
