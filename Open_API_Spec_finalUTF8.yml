@@ -22,286 +22,61 @@ paths:
     get:
       operationId: orderCalculationV5
       summary: Калькуляция заказа v5
-      description: Калькуляция заказа v5
+      description: |
+        * Возвращает расчет способов оплаты и доставки для текущего заказа с учетом переданных параметров.
+        * Для courier должна быть заполнена Пара settlement + settlement_key_id ИЛИ city + city_key_id 
+
       tags:
       - order
       parameters:
-      - name: user_address[country_code]
-        in: query
-        required: true
-        description: Код страны пользователя
-        schema:
-          type: string
-          nullable: false
-          example: RU
-      - name: user_address[country]
-        in: query
-        required: false
-        description: Страна пользователя
-        schema:
-          type: string
-          nullable: true
-          example: Россия
-      - name: user_address[region]
-        in: query
-        required: false
-        description: Регион пользователя
-        schema:
-          type: string
-          nullable: true
-          example: Москва
-      - name: user_address[region_key_id]
-        # новый Параметр
-        in: query
-        required: false
-        description: ФИАС региона пользователя
-        schema:
-          type: string
-          nullable: true
-          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
-      - name: user_address[area]
-        in: query
-        required: false
-        description: Район пользователя
-        schema:
-          type: string
-          nullable: true
-          example: р-н Внуково
-      - name: user_address[city]
-        in: query
-        required: false
-        description: Город пользователя
-        schema:
-          type: string
-          nullable: true
-          example: Москва
-      - name: user_address[city_key_id]
-        # новый Параметр
-        in: query
-        required: false
-        description: ФИАС города пользователя
-        schema:
-          type: string
-          nullable: true
-          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
-      - name: user_address[settlement]
-        # новый Параметр
-        in: query
-        required: false
-        description: Населенный Пункт пользователя
-        schema:
-          type: string
-          nullable: true
-          example: поселок Совхоза Крёкшино
-      - name: user_address[settlement_key_id]
-        # новый Параметр
-        in: query
-        required: false
-        description: ФИАС населенного пункта пользователя
-        schema:
-          type: string
-          nullable: true
-          example: 43d71370-45be-4533-aa6b-56585ae3d8e6
-      - name: calculated_by_dc
-        # новый Параметр
-        in: query
-        required: false
-        description: Признак, что для способа доставки ранее был получен результат расчета  от Delivery Calc Service
-        schema:
-          type: boolean
-          nullable: true
-          example: true
-      - name: calculation_success
-        # новый Параметр
-        in: query
-        required: false
-        x-required: true, если calculated_by_dc = true
-        description: Признак, что для ФИАС ранее был получен успешный результат детального расчета от Delivery Calc Service
-        schema:
-          type: boolean
-          nullable: true
-          example: true
-      - name: postamat_provider # новый Параметр 
-        in: query
-        required: false
-        description: Провайдер ПВЗ (служба доставки)
-        x-required: true, если выбран способ доставки postamat
-        x-source: postamat.provider в api/v1/geo/points
-        schema:
-          type: string
-          example: yandex
-      - name: postamat_code #Измененный параметр: as is 109012, Москва, Никольская ул, д.17с1, (Постамат: 04459) ; to be 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки postamat
-        description: Внешний идентификатор ПВЗ
-        x-source: postamat_id / code  в api/v1/geo/points
-        schema:
-          type: string
-          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
-      - name: delivery_id
-        in: query
-        required: false
-        description: Идентификатор доставки
-        schema:
-          type: integer
-      - name: delivery_profile_id
-        in: query
-        required: false
-        description: Идентификатор профиля доставки
-        schema:
-          type: integer
-      - name: paysystem_id
-        in: query
-        required: false
-        description: Идентификатор платежной системы
-        schema:
-          type: integer
-      - name: city_id
-        in: query
-        required: false
-        description: Идентификатор города
-        schema:
-          type: integer
-      - name: shop_guid # новый Параметр
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки pickup
-        description: Идентификатор магазина
-        schema:
-          type: string
-          x-source: shop.shop_guid в api/v1/geo/points
-          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
-      - name: hide_discounts
-        in: query
-        required: false
-        description: Флаг скрытия скидок
-        schema:
-          type: boolean
-      - name: coupon
-        in: query
-        required: false
-        description: Промокод
-        schema:
-          type: string
-      - name: certificate
-        in: query
-        required: false
-        description: Сертификат
-        schema:
-          title: CertificateCalcData
-          properties:
-            amount:
-              type: string
-              description: Сумма сертификата
-            pin:
-              type: string
-              description: пин код от подарочного сертификата
-            code:
-              type: string
-              description: Номер сертификата
-      - name: place
-        in: query
-        required: false
-        description: Доп. данные места
-        schema:
-          type: string
-      - name: country
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки courier
-        description: Страна
-        schema:
-          type: string
-      - name: country_code
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки courier
-        description: Код страны
-        schema:
-          type: string
-      - name: region
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки courier
-        description: Регион
-        schema:
-          type: string
-          example: Москва
-      - name: region_key_id
-        in: query
-        required: false
-        description: ФИАС региона
-        schema:
-          type: string
-          nullable: true
-          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
-      - name: city
-        in: query
-        required: false
-        description: Город
-        schema:
-          type: string
-          example: Москва
-      - name: city_key_id
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки courier
-        description: ФИАС города
-        schema:
-          type: string
-          nullable: true
-          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
-      - name: settlement
-        in: query
-        required: false
-        description: Населенный пункт
-        # новый Параметр
-        schema:
-          type: string
-          nullable: true
-          example: поселок Совхоза Крёкшино
-      - name: settlement_key_id
-        # новый Параметр 
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement_key_id ИЛИ city_key_id
-        description: ФИАС населенного пункта
-        schema:
-          type: string
-          nullable: true
-          example: 43d71370-45be-4533-aa6b-56585ae3d8e6
-      - name: house
-        in: query
-        required: false
-        description: Номер дома
-        schema:
-          type: string
-      - name: street
-        in: query
-        required: false
-        description: Улица
-        schema:
-          type: string
-      - name: apartment
-        in: query
-        required: false
-        description: Квартира
-        schema:
-          type: string
-      - name: postal_code
-        in: query
-        required: false
-        x-required: true, если выбран способ доставки courier
-        description: Почтовый индекс
-        schema:
-          type: string
-      - name: area
-        in: query
-        required: false
-        description: Район
-        schema:
-          type: string
+      - $ref: '#/components/parameters/UserID'
+      - $ref: '#/components/parameters/UserAreaID'
+      - $ref: '#/components/parameters/UserCountryCode'
+      - $ref: '#/components/parameters/UserCountry'
+      - $ref: '#/components/parameters/UserRegion'
+      - $ref: '#/components/parameters/UserRegionKeyID'
+      - $ref: '#/components/parameters/UserArea'
+      - $ref: '#/components/parameters/UserCity'
+      - $ref: '#/components/parameters/UserCityKeyID'
+      - $ref: '#/components/parameters/UserSettlement'
+      - $ref: '#/components/parameters/UserSettlementKeyID'
+      - $ref: '#/components/parameters/UserGeoService'
+      - $ref: '#/components/parameters/UserFirstName'
+      - $ref: '#/components/parameters/UserLastName'
+      - $ref: '#/components/parameters/UserPhone'
+      - $ref: '#/components/parameters/UserEmail'
+      - $ref: '#/components/parameters/UserEmailVerificationDate'
+      - $ref: '#/components/parameters/UserIsEmailVerified'
+      - $ref: '#/components/parameters/UserCreatedAt'
+      - $ref: '#/components/parameters/UserUpdatedAt'
+      - $ref: '#/components/parameters/UserJivoToken'
+      - $ref: '#/components/parameters/CalculatedByDC'
+      - $ref: '#/components/parameters/CalculationSuccess'
+      - $ref: '#/components/parameters/CountryCode'
+      - $ref: '#/components/parameters/Country'
+      - $ref: '#/components/parameters/Region'
+      - $ref: '#/components/parameters/RegionKeyID'
+      - $ref: '#/components/parameters/Area'
+      - $ref: '#/components/parameters/City'
+      - $ref: '#/components/parameters/CityKeyID'
+      - $ref: '#/components/parameters/Settlement'
+      - $ref: '#/components/parameters/SettlementKeyID'
+      - $ref: '#/components/parameters/Street'
+      - $ref: '#/components/parameters/House'
+      - $ref: '#/components/parameters/Apartment'
+      - $ref: '#/components/parameters/PostalCode'
+      - $ref: '#/components/parameters/PostamatProvider'
+      - $ref: '#/components/parameters/PostamatCode'
+      - $ref: '#/components/parameters/ShopGuid'
+      - $ref: '#/components/parameters/DeliveryID'
+      - $ref: '#/components/parameters/DeliveryProfileID'
+      - $ref: '#/components/parameters/PaySystemID'
+      - $ref: '#/components/parameters/CityID'
+      - $ref: '#/components/parameters/HideDiscounts'
+      - $ref: '#/components/parameters/Coupon'
+      - $ref: '#/components/parameters/Certificate'
+      - $ref: '#/components/parameters/Place'
+
 
       responses:
         "200":
@@ -10013,7 +9788,535 @@ paths:
 
 components:
 
+  parameters:
+      UserID:
+        name: user_id
+        description: GUID пользователя
+        in: query            
+        required: true
+        schema:
+          $ref: '#/components/schemas/UserID'
+      UserAreaID:
+        name: user_area_id
+        in: query            
+        required: false
+        description: Код локали пользователя
+        schema:
+          $ref: '#/components/schemas/UserAreaID'
+      UserCountryCode:
+          name: user_address[country_code]
+          in: query            
+          required: false
+          description: Код страны пользователя
+          schema:
+            $ref: '#/components/schemas/CountryCode'
+      UserCountry:
+          name: user_address[country]
+          description: Страна пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/Country'
+      UserRegion:
+          name: user_address[region]
+          description: Регион пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/Region'
+      UserRegionKeyID:
+          name: user_address[region_key_id]
+          description: ФИАС региона пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/RegionKeyID'  
+      UserArea:
+          name: user_address[area]
+          description: Район пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/Area'
+      UserCity:
+          name: user_address[city]
+          in: query            
+          required: false
+          description: Город пользователя
+          schema:
+            $ref: '#/components/schemas/City'
+      UserCityKeyID:
+          name: user_address[city_key_id]
+          description: ФИАС города пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/CityKeyID'
+      UserSettlement:
+          name: user_address[settlement]
+          description: Населенный пункт пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/Settlement'
+      UserSettlementKeyID:
+          name: user_address[settlement_key_id]
+          description: ФИАС населенного пункта пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/SettlementKeyID'  
+      UserGeoService:
+         name: user_address[geo_service]
+         description: Сервис гео поиска
+         in: query            
+         required: false
+         schema:
+            $ref: '#/components/schemas/GeoService'
+      UserFirstName:
+          name: user_first_name 
+          description: Имя пользователя
+          in: query            
+          required: false
+          schema:
+            $ref: '#/components/schemas/UserFirstName'
+      UserLastName:
+          name: user_last_name
+          description: Фамилия пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/UserLastName' 
+      UserPhone:
+          name: user_phone
+          description: Телефон пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/UserPhone'
+      UserEmail:
+          name: user_email
+          description: E-mail пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/UserEmail'
+      UserEmailVerificationDate:
+          name: user_email_verification_date
+          description: Дата верификации e-mail пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/UserEmailVerificationDate'
+      UserIsEmailVerified:
+          name: user_is_email_verified
+          in: query            
+          required: false
+          description: Признак верификации e-mail пользователя
+          schema:
+            $ref: '#/components/schemas/UserIsEmailVerified'
+      UserCreatedAt:
+          name: user_created_at
+          description: Дата создания пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/UserCreatedAt'
+      UserUpdatedAt:
+          name: user_updated_at
+          description: Дата обновления пользователя
+          in: query            
+          required: false
+          schema:
+             $ref: '#/components/schemas/UserUpdatedAt'
+      UserJivoToken:
+          name: user_jivo_token
+          in: query            
+          required: false
+          description: Токен JivoSite пользователя
+          schema:
+            $ref: '#/components/schemas/UserJivoToken'
+      CalculatedByDC:
+          name: calculated_by_dc
+          in: query    
+          description: Признак, что для способа доставки ранее был получен результат расчета  от Delivery Calc Service        
+          required: false
+          schema:
+            $ref: '#/components/schemas/CalculatedByDC'
+      CalculationSuccess:
+          name: calculation_success
+          in: query            
+          required: false
+          description: Признак, что для ФИАС/индекса ранее был получен успешный результат детального расчета от Delivery Calc Service
+          x-required: true, если calculated_by_dc = true
+          schema:
+            $ref: '#/components/schemas/CalculationSuccess'
+      PostamatProvider:
+          name: postamat_provider
+          description: Провайдер ПВЗ (служба доставки)
+          in: query        
+          required: false
+          x-required: true, если выбран способ доставки postamat
+          x-source: postamat.provider в api/v1/geo/points
+          schema:
+            $ref: '#/components/schemas/PostamatProvider'
+      PostamatCode:
+          name: postamat_code
+          in: query          
+          required: false
+          x-required: true, если выбран способ доставки postamat
+          description: Внешний идентификатор ПВЗ
+          x-source: postamat_id / code  в api/v1/geo/points
+          schema:
+            $ref: '#/components/schemas/PostamatCode'
+
+      DeliveryID:
+          name: delivery_id
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeliveryID'
+      DeliveryProfileID:
+          name: delivery_profile_id
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeliveryProfileID'
+      PaySystemID:
+          name: paysystem_id
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/PaySystemID'
+      CityID:
+          name: city_id
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/CityID'
+      HideDiscounts:
+          name: hide_discounts
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/HideDiscounts'
+      Coupon:
+          name: coupon
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/Coupon'
+      Certificate:
+          name: certificate
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/Certificate'
+      Place:
+          name: place
+          in: query   
+          required: false
+          schema:
+            $ref: '#/components/schemas/Place'
+
+      ShopGuid:
+          name: shop_guid
+          description: Внешний идентификатор магазина
+          required: false
+          x-required: true, если выбран способ доставки pickup
+          in: query   
+          schema:
+            $ref: '#/components/schemas/ShopGuid'
+
+      Country:
+          name: country
+          required: false
+          x-required: true, если выбран способ доставки courier
+          in: query  
+          schema:
+            $ref: '#/components/schemas/Country'
+      CountryCode:
+          name: country_code
+          required: false
+          x-required: true, если выбран способ доставки courier
+          in: query  
+          schema:
+            $ref: '#/components/schemas/CountryCode' 
+      Region:
+          name: region
+          description: Регион 
+          required: false
+          in: query  
+          x-required: true, если выбран способ доставки courier
+          schema:
+            $ref: '#/components/schemas/Region'
+      RegionKeyID:
+          name: region_key_id
+          description: ФИАС региона 
+          required: false
+          x-required: true, если выбран способ доставки courier
+          in: query  
+          schema:
+            $ref: '#/components/schemas/RegionKeyID'
+      Area:
+          name: area
+          description: Район 
+          required: false
+          x-required: true, если выбран способ доставки courier
+          in: query  
+          schema:
+            $ref: '#/components/schemas/Area'
+      City:
+          name: city
+          description: Город 
+          required: false
+          x-required: true, если выбран способ доставки courier
+          in: query  
+          schema:
+            $ref: '#/components/schemas/City'
+      CityKeyID:
+          name: city_key_id
+          description: ФИАС города 
+          required: false
+          in: query
+          x-required: true, если выбран способ доставки courier
+          schema:
+            $ref: '#/components/schemas/CityKeyID'
+      Settlement:
+          name: settlement
+          description: Населенный пункт 
+          required: false
+          x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement ИЛИ city
+          in: query
+          schema:
+            $ref: '#/components/schemas/Settlement'
+      SettlementKeyID:
+          name: settlement_key_id
+          description: ФИАС населенного пункта
+          required: false
+          in: query
+          x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement_key_id ИЛИ city_key_id
+          schema:
+            $ref: '#/components/schemas/SettlementKeyID'
+      Street:
+          name: street
+          required: false
+          x-required: true, если выбран способ доставки courier
+          in: query  
+          schema:
+            $ref: '#/components/schemas/Street'
+      House:
+          name: house
+          required: false
+          x-required: true, если выбран способ доставки courier
+          in: query  
+          schema:
+            $ref: '#/components/schemas/House'
+      Apartment:
+          name: apartment
+          required: false
+          x-required: false
+          in: query  
+          schema:
+            $ref: '#/components/schemas/Apartment'
+      PostalCode:
+          name: postal_code
+          required: false
+          in: query  
+          x-required: true, если выбран способ доставки courier
+          schema:
+            $ref: '#/components/schemas/PostalCode'
+  
   schemas:
+    UserID:
+        description: GUID пользователя
+        type: string
+        nullable: true
+        example: c02308d3-bdad-4059-b094-03839d44812f345
+    UserAreaID:
+        description: Код локали пользователя
+        type: string
+        nullable: false
+        example: RUS  
+    UserFirstName:
+          description: Имя пользователя
+          type: string
+          nullable: true
+          example: Джон
+    UserLastName:
+          description: Фамилия пользователя
+          type: string
+          nullable: true
+          example: Сноу
+    UserPhone:
+          description: Телефон пользователя
+          type: string
+          nullable: true
+          example: 74812392024
+    UserEmail:
+          description: E-mail пользователя
+          type: string
+          nullable: true
+          example: dfg@hhh.gg
+    UserEmailVerificationDate:
+          description: Дата верификации e-mail пользователя
+          type: string
+          format: date-time
+          nullable: true
+          example: 2025-12-11T18:14:13.148Z
+    UserIsEmailVerified:
+          description: Признак верификации e-mail пользователя
+          type: boolean
+          nullable: true
+          example: true
+    UserCreatedAt:
+          description: Дата создания пользователя
+          type: string
+          format: date-time
+          example: 2020-05-11T18:14:13.148Z
+    UserUpdatedAt:
+          description: Дата обновления пользователя
+          type: string
+          format: date-time
+          nullable: true
+          example: 2024-01-11T18:14:13.148Z
+    UserJivoToken:
+          description: Токен JivoSite пользователя
+          type: string
+          nullable: true
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImMwMjMwOGQzLWJkYWQtNDA1OS1iMDk0LTAzODM5ZDQ0ODEyZiJ9.TLiRA_A07KHZDMrEqgLd4ICKwRDQIPGD2OYURlS9xIg
+
+    CalculatedByDC:
+          description: Признак, что для способа доставки ранее был получен результат расчета  от Delivery Calc Service
+          type: boolean
+          nullable: true
+          example: true
+    CalculationSuccess:
+          description: Признак, что для ФИАС ранее был получен успешный результат детального расчета от Delivery Calc Service
+          type: boolean
+          nullable: true
+          example: true
+
+    PostamatProvider:
+          description: Провайдер ПВЗ (служба доставки)
+          type: string
+          example: yandex
+    PostamatCode:
+          description: Внешний идентификатор ПВЗ
+          type: string
+          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+
+    DeliveryID:
+          description: Идентификатор доставки
+          type: integer
+    DeliveryProfileID:
+          description: Идентификатор профиля доставки
+          type: integer
+    PaySystemID:
+          description: Идентификатор платежной системы
+          type: integer
+    CityID:
+          description: Идентификатор города
+          type: integer
+    HideDiscounts:
+          description: Флаг скрытия скидок
+          type: boolean
+    Coupon:
+          description: Промокод
+          type: string
+    Certificate:
+          description: Сертификат
+          type: object
+          properties:
+            amount:
+              type: string
+              description: Сумма сертификата
+            pin:
+              type: string
+              description: пин код от подарочного сертификата
+            code:
+              type: string
+              description: Номер сертификата
+    Place:
+          description: Доп. данные места
+          type: string
+
+    ShopGuid:
+          description: Внешний идентификатор магазина
+          type: string
+          x-source: shop.shop_guid в api/v1/geo/points
+          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+
+    CountryCode:
+          description: Код страны 
+          type: string
+          nullable: false
+          example: RU
+    Country:
+          description: Страна 
+          type: string
+          nullable: true
+          example: Россия
+    Region:
+          description: Регион 
+          type: string
+          nullable: true
+          example: Москва
+    RegionKeyID:
+          description: ФИАС региона 
+          type: string
+          nullable: true
+          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+    Area:
+          description: Район 
+          type: string
+          nullable: true
+          example: р-н Внуково
+    City:
+          description: Город 
+          nullable: true
+          example: Москва
+    CityKeyID:
+          description: ФИАС города 
+          type: string
+          nullable: true
+          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+    Settlement:
+          description: Населенный пункт 
+          type: string
+          nullable: true
+          example: поселок Совхоза Крёкшино
+    SettlementKeyID:
+          description: ФИАС населенного пункта
+          type: string
+          nullable: true
+          example: 43d71370-45be-4533-aa6b-56585ae3d8e6
+    GeoService:
+          description: Сервис гео поиска
+          type: string
+          nullable: true
+          example: dadata
+    Street:
+          description: Улица
+          type: string
+          nullable: true
+          example: 15-я Парковая улица
+    House:
+          description: Номер дома
+          type: string
+          nullable: true
+          example: 15
+    Apartment:
+          description: Квартира
+          type: string
+          nullable: true
+          example: 123
+    PostalCode:
+          description: Почтовый индекс
+          type: string
+          nullable: true
+          example: 101000
+
 
     ErrorModel:
       type: object
