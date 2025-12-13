@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: LIME-SHOP + Delivery Calc Monolith API
-  description: СПецификация оПисывает добавляемые и изменяемые методы API монолита при интеграции с Delivery Calc. За основу взят OpenAPI spec as is (версия от 20/09/2025).  В описании существующих методов ддобавляемые поля отмечены
+  description: Спецификация описывает добавляемые и изменяемые методы API монолита для интеграции с Delivery Calc. За основу взят OpenAPI spec as is (версия от 20/09/2025). Возможные отклонения от реализации AS IS в части, не относящейся к интеграции с DC, следует считать не требованиями, а недостатками документа, взятого за основу.
   version: v1
 servers:
 # Added by API Auto Mocking Plugin
@@ -1165,57 +1165,24 @@ paths:
                     description: Ошибки в заполнении формы заказа
                     items:
                       type: string
-                  $problems:
-                    $ref: '#/components/schemas/problems'
+                  problems:
+                    $ref: '#/components/schemas/OrderValidationError'
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
                 oneOf:
-                - title: Exception
-                  type: object
-                  description: Исключение
-                  properties:
-                    key:
-                      type: string
-                      nullable: false
-                      readOnly: true
-                      description: Ключ ошибки
-                      example: AUTH_USER_NOT_FOUND
-                    message:
-                      type: string
-                      readOnly: true
-                      nullable: false
-                      description: Текст сообщения об ошибки
-                  additionalProperties: false
-                - title: ValidationMessage
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
+                - $ref: "#/components/schemas/ErrorModel"
+                - $ref: "#/components/schemas/ValidationMessage"
 
   /api/v5/orders/courier/:
     post:
       operationId: orderNewCourierV5
       summary: Создание заказа курьер v5
-      description: Согласованный контракт
+      description: | 
+        Создание заказа для сПособа доставки Курьером
+        * Если calculated_by_dc = true,  ФИАСы являются обязательными: city_key_id и/или settlement_key_id 
       tags:
       - order
       x-noready: true
@@ -1229,50 +1196,41 @@ paths:
               allOf:
               - title: OrderCreateBase
                 description: Общие поля для модели создания заказа
+                required:
+                  - user_first_name
+                  - user_last_name
+                  - user_email
+                  - user_phone
+                  - delivery_id
+                  - paysystem_id
+                  - country
+                  - country_code
+                  - calculated_by_dc
                 properties:
                   user_first_name:
-                    description: Имя
-                    type: string
-                    example: Джон
+                    $ref: '#/components/schemas/UserFirstName'
                   user_last_name:
-                    description: Фамилия
-                    type: string
-                    example: Сноу
+                    $ref: '#/components/schemas/UserLastName'
                   user_email:
-                    description: E-mail
-                    type: string
-                    example: user@example.com
+                    $ref: '#/components/schemas/UserEmail'
                   user_phone:
-                    description: Телефон
-                    type: string
-                    example: 74812392024
+                    $ref: '#/components/schemas/UserPhone'
                   delivery_id:
-                    description: Идентификатор доставки
-                    type: integer
-                    example: 1
+                    $ref: '#/components/schemas/DeliveryID'
                   paysystem_id:
-                    description: Идентификатор платежной системы
-                    type: integer
-                    example: 2
+                    $ref: '#/components/schemas/PaySystemID'
                   address:
-                    description: Адрес
-                    type: string
-                    example: 214031, Россия, Смоленская обл, г Смоленск, ул 25 Сентября, д 35А
+                    $ref: '#/components/schemas/AddressFull'
                   country:
-                    description: Страна
-                    type: string
-                    example: Россия
+                    $ref: '#/components/schemas/Country'
                   country_code:
-                    description: Код страны
-                    type: string
-                    example: RU
+                    $ref: '#/components/schemas/CountryCode'
                   delivery_profile_id:
-                    type: integer
-                    description: Идентификатор профиля доставки
+                    $ref: '#/components/schemas/DeliveryProfileID'
                   geo_service:
-                    description: Геосервис
-                    type: string
-                    example: yandex
+                    $ref: '#/components/schemas/GeoService'
+                  calculated_by_dc:
+                    $ref: '#/components/schemas/CalculatedByDC'
               - title: PaymentsComponentsCollection
                 type: object
                 description: "Коллекция компонентов платежа: Идентификатор платёжного метода + сумма"
@@ -1291,51 +1249,35 @@ paths:
                           description: Сумма
                           type: integer
                           example: 3099
+              required: 
+              - postal_code
+              - city
+              - street
+              - house          
               properties:
-                apartment:
-                  description: Квартира
-                  type: string
-                  example: 30
-                street:
-                  description: Улица
-                  type: string
-                  example: Ботанический пер
-                city:
-                  description: Город
-                  type: string
-                  example: Москва
                 postal_code:
-                  description: Индекс
-                  type: string
-                  example: 101000
+                  $ref: '#/components/schemas/PostalCode'
                 region:
-                  description: Регион
-                  type: string
-                  example: Москва
-                house:
-                  description: Номер дома
-                  type: string
-                  example: 16
-                area:
-                  description: Район
-                  type: string
-                  example: р-н Внуково
-                city_key_id:
-                  # новый Параметр
-                  type: string
-                  example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                  $ref: '#/components/schemas/Region'
                 region_key_id:
-                  # новый Параметр
-                  type: string
-                  example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                  $ref: '#/components/schemas/RegionKeyID'
+                area:
+                  $ref: '#/components/schemas/Area'
+                city:
+                  $ref: '#/components/schemas/City'                  
+                city_key_id:
+                  $ref: '#/components/schemas/CityKeyID'
                 settlement:
-                  # новый Параметр
-                  type: string
-                  example: поселок Совхоза Крёкшино
+                  $ref: '#/components/schemas/Settlement'
                 settlement_key_id:
-                  # новый Параметр
-                  type: string
-                  example: 43d71370-45be-4533-aa6b-56585ae3d8e6
+                  $ref: '#/components/schemas/SettlementKeyID'
+                street:
+                  $ref: '#/components/schemas/Street'
+                house:
+                  $ref: '#/components/schemas/House'
+                apartment:
+                  $ref: '#/components/schemas/Apartment'
+
                 delivery_date:
                   description: Дата доставки
                   type: string
@@ -1350,10 +1292,7 @@ paths:
                   # новый Параметр
                   type: string
                   example: 12:00:00
-                calculated_by_dc:
-                  # новый Параметр
-                  type: string
-                  example: true
+
 
       responses:
         "200":
@@ -3901,67 +3840,30 @@ paths:
                     description: Сумма заказа отформатированная с валютой
                     type: string
                     example: 30990 руб.
+        "409":
+          description: Exceptions Response
+          content:
+            application/json:
+              schema:
+                 $ref: '#/components/schemas/ErrorModel'
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
-                oneOf:
-                - $ref: '#/components/schemas/ErrorModel'
-                - title: ValidationMessage
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
+                 $ref: "#/components/schemas/ValidationMessage"
 
   /api/v1/geo/points/postamat:
     get:
       summary: Получение детальной страницы ПВЗ
-      description: Согласованный контракт
+      description: Возвращает детальные данные по пункту выдачи заказов (ПВЗ)
       tags:
       - postamat
       security: []
       parameters:
-      - name: code
-        in: query
-        required: true
-        description: Внутренний код в группе провайдера, уникален только в пределах группы провайдера, не является ключом
-        x-source: code в api/v1/geo/points
-        schema:
-          type: string
-          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
-      - name: provider
-        in: query
-        required: true
-        description: Код службы доставки
-        x-source: Поле provider в  /points массива postamats
-        schema:
-          type: string
-          example: yandex
-      - name: calculated_by_dc
-        in: query
-        required: true
-        x-source: Ответ метода GET /api/v5/order/ new   delivery.items.postamat.calculated_by_dc
-        description: Признак доступности расчета доставки для postamat через DC
-        schema:
-          type: boolean
-          example: true
+      - $ref: '#/components/parameters/PostamatCodeRequired'
+      - $ref: '#/components/parameters/PostamatProviderRequired'
+      - $ref: '#/components/parameters/CalculatedByDC'
 
       responses:
         "200":
@@ -3972,39 +3874,26 @@ paths:
                 type: object
                 properties:
                   code:
-                    type: string
-                    description: Внутренний код в группе провайдера*
-                    example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+                    $ref: "#/components/schemas/PostamatCode"
                   provider:
-                    type: string
-                    description: Код провайдера пункта выдачи
-                    example: yandex
+                    $ref: "#/components/schemas/PostamatProvider"
                   name:
                     type: string
                     description: Название пункта выдачи (для вывода на UI)
                     example: Пункт выдачи заказов ЯНДЕКС
                   city_key_id:
-                    type: string
-                    nullable: true
-                    description: ФИАС города/населенного пункта
-                    example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                    $ref: "#/components/schemas/CityKeyID"
                   city:
-                    type: string
-                    description: Город
-                    example: Москва
+                    $ref: "#/components/schemas/City"
                   address:
                     type: string
                     description: адрес
                     nullable: true
                     example: Москва, улица Генерала Белова, 1/8
                   lat:
-                    type: string
-                    description: Широта (координаты)
-                    example: "56.395931"
+                    $ref: "#/components/schemas/LatNonNullable"
                   lng:
-                    type: string
-                    description: Долгота (координаты)
-                    example: "38.712349"
+                    $ref: "#/components/schemas/LngNonNullable"
                   work_schedule:
                     type: string
                     nullable: true
@@ -4033,52 +3922,18 @@ paths:
               schema:
                 oneOf:
                 - $ref: '#/components/schemas/ErrorModel'
-                - title: ValidationMessage
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
+                - $ref: "#/components/schemas/ValidationMessage"
 
   /api/v1/geo/points/shop:
     get:
-      summary: Получение детальной магазина
+      summary: Получение детальной страницы магазина
       description: Согласованный контракт
       tags:
       - shop
       security: []
       parameters:
-      - name: guid
-        in: query
-        required: true
-        description: GUID магазина
-        x-source: Поле guidв запросе /points массива shops
-        schema:
-          type: string
-          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
-      - name: calculated_by_dc
-        in: query
-        required: true
-        x-source: Ответ метода GET /api/v5/order/ new   delivery.items.postamat.calculated_by_dc
-        description: Признак доступности расчета доставки для pickup через DC
-        schema:
-          type: boolean
-          example: true
+      - $ref: '#/components/parameters/ShopGuidRequired'
+      - $ref: '#/components/parameters/CalculatedByDC'
 
       responses:
         "200":
@@ -4089,9 +3944,7 @@ paths:
                 type: object
                 properties:
                   shop_id:
-                    type: string
-                    description: GUID магазина
-                    example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+                    $ref: "#/components/schemas/ShopGuid"
                   provider:
                     type: string
                     description: Всегда lime
@@ -4101,34 +3954,23 @@ paths:
                     description: Название магазина (для вывода на UI)
                     example: Океания
                   city_key_id:
-                    type: string
-                    nullable: true
-                    description: ФИАС города/населенного пункта
-                    example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                    $ref: "#/components/schemas/CityKeyID"
                   city:
-                    type: string
-                    description: Город
-                    example: Москва
+                    $ref: "#/components/schemas/City"
                   address:
                     type: string
                     description: адрес
                     nullable: true
                     example: Москва, улица Генерала Белова, 1/8
                   lat:
-                    type: string
-                    description: Широта (координаты)
-                    example: "56.395931"
+                    $ref: "#/components/schemas/Lat"
                   lng:
-                    type: string
-                    description: Долгота (координаты)
-                    example: "38.712349"
+                    $ref: "#/components/schemas/Lng"
                   work_schedule:
                     type: string
                     nullable: true
                     description: График работы
-                    example: "пн-пт: 10.00-22.00
-
-                      сб-вс: 10.00-19.00"
+                    example: "пн-пт: 10.00-22.00 сб-вс: 10.00-19.00"
                   storage_days:
                     type: string
                     nullable: true
@@ -4177,34 +4019,20 @@ paths:
   /api/v1/geo/points:
     get:
       summary: Список ПВЗ и магазинов при оформлении заказа
-      description: Согласованный контракт
+      description: |
+        Возвращает список ПВЗ и/или магазинов для выбора при оформлении заказа
+        * должен быть передан или ФИАСы, или координаты, или ФИАСы + координаты
       tags:
       - postamat
       - shop
       security: []
       parameters:
-      - in: query
-        name: lng
-        description: долгота
-        required: false
-        x-requred: должен быть передан или ФИАС, или координаты, или ФИАС + координаты
-        x-source: Из запроса саджестов или геолокации пользователя
-        schema:
-          nullable: true
-          type: string
-          example: 30,276379
-      - in: query
-        name: lat
-        description: широта
-        required: false
-        x-requred: должен быть передан или ФИАС, или координаты, или ФИАС + координаты
-        x-source: Из запроса саджестов или геолокации пользователя
-        schema:
-          nullable: true
-          type: string
-          example: 60,05701
-      - in: query
-        name: delivery_service_code
+      - $ref: '#/components/parameters/Lat'
+      - $ref: '#/components/parameters/Lng'
+      - $ref: '#/components/parameters/CityKeyID'
+      - $ref: "#/components/parameters/SettlementKeyID"
+      - name: delivery_service_code
+        in: query
         description: Фильтр по способу доставки (можно передать несколько значений)
         required: true
         schema:
@@ -4216,26 +4044,8 @@ paths:
             - pickup
             - postamat
           example: [ pickup, postamat ]
-      - in: query
-        name: city_key_id
-        description: ФИАС города
-        required: false
-        x-requred: должен быть передан или ФИАС, или координаты, или ФИАС + координаты
-        example:
-        schema:
-          type: string
-          nullable: true
-      - in: query
-        name: settlement_key_id
-        description: ФИАС населенного пункта
-        required: false
-        x-requred: должен быть передан или ФИАС, или координаты, или ФИАС + координаты
-        example:
-        schema:
-          type: string
-          nullable: true
-      - in: query
-        name: has_fragile
+      - name: has_fragile
+        in: query
         description: Наличие в составе заказа товаров, требующих особых условий доставки
         required: false
         x-source: Берется из корзины, определяет наличие товаров, требующих аккуратной транспортировки (парфюм)
@@ -4243,32 +4053,32 @@ paths:
         schema:
           type: integer
           nullable: true
-      - in: query
-        name: pickup_calculated_by_dc
+      - name: pickup_calculated_by_dc
+        in: query
         x-source: Ответ метода GET /api/v5/order/ new   delivery.items.pickup.calculated_by_dc
         description: Признак доступности расчета доставки для pickup через DC
         required: true
         example: true
         schema:
           type: boolean
-      - in: query
-        name: postamat_calculated_by_dc
+      - name: postamat_calculated_by_dc
+        in: query
         x-source: Ответ метода GET /api/v5/order/ new   delivery.items.postamat.calculated_by_dc
         description: Признак доступности расчета доставки для postamat через DC
         required: true
         example: true
         schema:
           type: boolean
-      - in: query
-        name: provider
-        description: Фильтр по службе доставки
-        x-description: Хардкод, список с разделителем запятой, сортировка только для ПВЗ, не касается магазинов
+      - name: provider
+        in: query
+        description: Фильтр по службе доставки для ПВЗ. Cписок с разделителем запятой, сортировка только для ПВЗ, не касается магазинов
         schema:
           type: array
           description: Значения фильтра заполняются из объекта Providers, возвращённого из ответа сервера
           items:
             type: string
             description: Значение для фильтра
+            example: yandex
       responses:
         "200":
           description: Ok
@@ -4284,9 +4094,7 @@ paths:
                       title: Provider
                       properties:
                         code:
-                          type: string
-                          description: код провайдера доставки
-                          example: yandex
+                          $ref: "#/components/schemas/PostamatProvider"
                         name:
                           type: string
                           description: Отобрражаемое наименование провайдера
@@ -4305,11 +4113,8 @@ paths:
                       description: магазин
                       properties:
                         guid:
-                          type: string
-                          description: Идентификатор магазина
-                          example: 019c68ef-9d5e-11ed-b88e-00155d03942c
-                          x-source: pickupStore.code
-                        provider:
+                          $ref: "#/components/schemas/ShopGuid"
+                        code:
                           type: string
                           description: Тип магазина. Всегда lime
                           example: lime
@@ -4318,30 +4123,18 @@ paths:
                           description: Название магазина
                           example: МСК \"Павелецкая Плаза\
                         city_key_id:
-                          type: string
-                          nullable: true
-                          description: ФИАС города/населенного пункта
-                          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                          $ref: "#/components/schemas/CityKeyID"
                         city:
-                          type: string
-                          nullable: true
-                          description: Город
-                          example: Москва
+                          $ref: "#/components/schemas/City"
                         address:
                           type: string
                           nullable: true
                           description: адрес
                           example: Москва, р-н Замоскворечье, Павелецкая пл, д 3
                         lat:
-                          title: lat
-                          type: string
-                          description: Широта (координаты)
-                          example: "56.395931"
+                          $ref: "#/components/schemas/Lat"
                         lng:
-                          title: lon
-                          type: string
-                          description: Долгота (координаты)
-                          example: "38.712349"
+                          $ref: "#/components/schemas/Lng"
                         phone:
                           type: string
                           nullable: true
@@ -4365,44 +4158,26 @@ paths:
                       description: Пункт выдачи
                       properties:
                         code:
-                          type: string
-                          description: Внешний идентификатор ПВЗ
-                          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+                          $ref: "#/components/schemas/PostamatCode"
                         provider:
-                          title: PickupProvider
-                          type: string
-                          description: Провайдер пункта выдачи
-                          example: yandex
+                          $ref: "#/components/schemas/PostamatProvider"
                         name:
                           type: string
                           description: Название пункта выдачи
                           example: Пункт выдачи заказов ЯНДЕКС
                         city_key_id:
-                          type: string
-                          nullable: true
-                          description: ФИАС города/населенного пункта
-                          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                          $ref: "#/components/schemas/CityKeyID"
                         city:
-                          type: string
-                          nullable: true
-                          description: Город
-                          example: Москва
+                          $ref: "#/components/schemas/City"
                         address:
                           type: string
                           nullable: true
                           description: адрес
                           example: Москва, улица Генерала Белова, 1/8
                         lat:
-                          title: lat
-                          type: string
-                          description: Ширина (координаты)
-                          example: "56.395931"
+                          $ref: "#/components/schemas/Lat"
                         lng:
-                          title: lon
-                          type: string
-                          description: Долгота (координаты)
-                          example: "38.712349"
-                          x-source: pickupPoints.lon в calculate/pickup-points
+                          $ref: "#/components/schemas/Lng"
                         work_schedule:
                           type: string
                           nullable: true
@@ -4446,7 +4221,9 @@ paths:
     post:
       operationId: orderNewPickupVХ
       summary: Создание заказа самовывоз из магазина v5
-      description: Согласованный контракт
+      description: |
+        Создание заказа с типом доставки самовывоз из магазина (pickup) 
+        * Если calculated_by_dc = true,  city_key_id не nullable
       tags:
       - order
       requestBody:
@@ -4459,51 +4236,41 @@ paths:
               allOf:
               - title: OrderCreateBase
                 description: Общие поля для модели создания заказа
+                required:
+                  - user_first_name
+                  - user_last_name
+                  - user_email
+                  - user_phone
+                  - delivery_id
+                  - paysystem_id
+                  - country
+                  - country_code
+                  - calculated_by_dc
                 properties:
                   user_first_name:
-                    description: Имя
-                    type: string
-                    example: Джон
+                    $ref: '#/components/schemas/UserFirstName'
                   user_last_name:
-                    description: Фамилия
-                    type: string
-                    example: Сноу
+                    $ref: '#/components/schemas/UserLastName'
                   user_email:
-                    description: E-mail
-                    type: string
-                    example: user@example.com
+                    $ref: '#/components/schemas/UserEmail'
                   user_phone:
-                    description: Телефон
-                    type: string
-                    example: 74812392024
+                    $ref: '#/components/schemas/UserPhone'
                   delivery_id:
-                    description: Идентификатор доставки
-                    type: integer
-                    example: 1
+                    $ref: '#/components/schemas/DeliveryID'
                   paysystem_id:
-                    description: Идентификатор платежной системы
-                    type: integer
-                    example: 2
+                    $ref: '#/components/schemas/PaySystemID'
                   country:
-                    description: Страна
-                    type: string
-                    example: Россия
+                    $ref: '#/components/schemas/Country'
                   country_code:
-                    description: Код страны
-                    type: string
-                    example: RU
+                    $ref: '#/components/schemas/CountryCode'
                   delivery_profile_id:
-                    type: integer
-                    description: Идентификатор профиля доставки
+                    $ref: '#/components/schemas/DeliveryProfileID'
                   calculated_by_dc:
-                    # новый Параметр
-                    type: string
-                    example: true
-                    description: Признак успешного расчета досатвки для способа получения в DC
+                    $ref: '#/components/schemas/CalculatedByDC'
+                  coupon:
+                    $ref: '#/components/schemas/Coupon'
                   geo_service:
-                    description: Геосервис
-                    type: string
-                    example: yandex
+                    $ref: '#/components/schemas/GeoService'
               - title: PaymentsComponentsCollection
                 type: object
                 description: "Коллекция компонентов платежа: Идентификатор платёжного метода + сумма"
@@ -4522,18 +4289,15 @@ paths:
                           description: Сумма
                           type: integer
                           example: 3099
+              required:
+                  - city_key_id
+                  - shop_guid  
               properties:
                 city_key_id:
-                  #новый параметр
-                  type: string
-                  description: ФИАС города/населенного пункта
-                  example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                  $ref: '#/components/schemas/CityKeyID'
                   x-source: shop.cityKeyId в возврате метода api/v1/geo/points
                 shop_guid:
-                  #новый параметр
-                  description: Идентификатор магазина
-                  type: string
-                  example: 019c68ef-9d5e-11ed-b88e-00155d03942c
+                  $ref: '#/components/schemas/ShopGuidNotNullable'
                   x-source: shop_guid в возврате метода api/v1/geo/points
       responses:
         "200":
@@ -7068,40 +6832,26 @@ paths:
                     description: Сумма заказа отформатированная с валютой
                     type: string
                     example: 30990 руб.
+        "409":
+          description: Exceptions Response
+          content:
+            application/json:
+              schema:
+                 $ref: '#/components/schemas/ErrorModel'
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
-                oneOf:
-                - $ref: '#/components/schemas/ErrorModel'
-                - title: ValidationMessage
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
+                 $ref: "#/components/schemas/ValidationMessage"
 
   /api/v5/orders/postamat/:
     post:
       operationId: orderNewPostamatV5
       summary: Создание заказа постомат v5
-      description: Согласованный контракт
+      description: |
+        Создание заказа с типом доставки самовывоз из ПВЗ (postamat)
+        * Если calculated_by_dc = true,  city_key_id не nullable
       tags:
       - order
       x-noready: true
@@ -7115,51 +6865,41 @@ paths:
               allOf:
               - title: OrderCreateBase
                 description: Общие поля для модели создания заказа
+                required:
+                  - user_first_name
+                  - user_last_name
+                  - user_email
+                  - user_phone
+                  - delivery_id
+                  - paysystem_id
+                  - country
+                  - country_code
+                  - calculated_by_dc
                 properties:
                   user_first_name:
-                    description: Имя
-                    type: string
-                    example: Джон
+                    $ref: '#/components/schemas/UserFirstName'
                   user_last_name:
-                    description: Фамилия
-                    type: string
-                    example: Сноу
+                    $ref: '#/components/schemas/UserLastName'
                   user_email:
-                    description: E-mail
-                    type: string
-                    example: user@example.com
+                    $ref: '#/components/schemas/UserEmail'
                   user_phone:
-                    description: Телефон
-                    type: string
-                    example: 74812392024
+                    $ref: '#/components/schemas/UserPhone'
                   delivery_id:
-                    description: Идентификатор доставки
-                    type: integer
-                    example: 1
+                    $ref: '#/components/schemas/DeliveryID'
                   paysystem_id:
-                    description: Идентификатор платежной системы
-                    type: integer
-                    example: 2
+                    $ref: '#/components/schemas/PaySystemID'
                   country:
-                    description: Страна
-                    type: string
-                    example: Россия
+                    $ref: '#/components/schemas/Country'
                   country_code:
-                    description: Код страны
-                    type: string
-                    example: RU
+                    $ref: '#/components/schemas/CountryCode'
                   delivery_profile_id:
-                    type: integer
-                    description: Идентификатор профиля доставки
+                    $ref: '#/components/schemas/DeliveryProfileID'
                   calculated_by_dc:
-                    # новый Параметр
-                    type: string
-                    example: true
-                    description: Признак успешного расчета досатвки для способа получения в DC
+                    $ref: '#/components/schemas/CalculatedByDC'
+                  coupon:
+                    $ref: '#/components/schemas/Coupon'
                   geo_service:
-                    description: Геосервис
-                    type: string
-                    example: yandex
+                    $ref: '#/components/schemas/GeoService'
               - title: PaymentsComponentsCollection
                 type: object
                 description: "Коллекция компонентов платежа: Идентификатор платёжного метода + сумма"
@@ -7178,22 +6918,18 @@ paths:
                           description: Сумма
                           type: integer
                           example: 3099
+              required:
+                  - city_key_id
+                  - postamat_provider
+                  - postamat_code
               properties:
                 city_key_id:
-                  #новый параметр
-                  type: string
-                  description: ФИАС города/населенного пункта
-                  example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                  $ref: '#/components/schemas/CityKeyID'
                   x-source: postamat.city_key_id в возврате метода api/v1/geo/points
                 postamat_code:
-                  description: Пункт выдачи
-                  type: string
-                  example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
-                  x-source: code в api/v1/geo/points
+                  $ref: '#/components/schemas/PostamatCodeNotNullable'
                 postamat_provider:
-                  description: Провайдер пункта выдачи
-                  type: string
-                  example: yandex
+                  $ref: '#/components/schemas/PostamatProviderNotNullable'
 
       responses:
         "200":
@@ -9757,34 +9493,18 @@ paths:
                     description: Сумма заказа отформатированная с валютой
                     type: string
                     example: 30990 руб.
+        "409":
+          description: Exceptions Response
+          content:
+            application/json:
+              schema:
+                 $ref: '#/components/schemas/ErrorModel'
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
-                oneOf:
-                - $ref: '#/components/schemas/ErrorModel'
-                - title: ValidationMessage
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
+                 $ref: "#/components/schemas/ValidationMessage"
 
 components:
 
@@ -9939,8 +9659,8 @@ components:
       CalculatedByDC:
           name: calculated_by_dc
           in: query    
-          description: Признак, что для способа доставки ранее был получен результат расчета  от Delivery Calc Service        
-          required: false
+          description: Признак расчета доставки в Delivery Calc Service        
+          required: true
           schema:
             $ref: '#/components/schemas/CalculatedByDC'
       CalculationSuccess:
@@ -9953,7 +9673,7 @@ components:
             $ref: '#/components/schemas/CalculationSuccess'
       PostamatProvider:
           name: postamat_provider
-          description: Провайдер ПВЗ (служба доставки)
+          description: Провайдер ПВЗ (служба доставки). . Обязателен, если выбран способ доставки postamat
           in: query        
           required: false
           x-required: true, если выбран способ доставки postamat
@@ -9965,15 +9685,32 @@ components:
           in: query          
           required: false
           x-required: true, если выбран способ доставки postamat
-          description: Внешний идентификатор ПВЗ
+          description: Внешний идентификатор ПВЗ. Обязателен, если выбран способ доставки postamat
           x-source: postamat_id / code  в api/v1/geo/points
           schema:
             $ref: '#/components/schemas/PostamatCode'
+      PostamatProviderRequired:
+          name: provider
+          description: Провайдер ПВЗ (служба доставки)
+          in: query        
+          required: true
+          x-source: postamat.provider в api/v1/geo/points
+          schema:
+            $ref: '#/components/schemas/PostamatProviderNotNullable'
+      PostamatCodeRequired:
+          name: code
+          in: query          
+          required: true
+          description: Внешний идентификатор ПВЗ, уникален только в пределах группы провайдера, не является ключом
+          x-source: postamat_id / code  в api/v1/geo/points
+          schema:
+            $ref: '#/components/schemas/PostamatCodeNotNullable'
 
       DeliveryID:
           name: delivery_id
+          description: Идентификатор способа получения
           in: query   
-          required: false
+          required: true
           schema:
             $ref: '#/components/schemas/DeliveryID'
       DeliveryProfileID:
@@ -10021,12 +9758,20 @@ components:
 
       ShopGuid:
           name: shop_guid
-          description: Внешний идентификатор магазина
+          description: Внешний идентификатор магазина. . Обязателен, если выбран способ доставки pickup
           required: false
           x-required: true, если выбран способ доставки pickup
           in: query   
           schema:
             $ref: '#/components/schemas/ShopGuid'
+
+      ShopGuidRequired:
+          name: shop_guid
+          description: Внешний идентификатор магазина
+          required: true
+          in: query   
+          schema:
+            $ref: '#/components/schemas/ShopGuidNotNullable'
 
       Country:
           name: country
@@ -10037,7 +9782,7 @@ components:
             $ref: '#/components/schemas/Country'
       CountryCode:
           name: country_code
-          required: false
+          required: true
           x-required: true, если выбран способ доставки courier
           in: query  
           schema:
@@ -10126,7 +9871,37 @@ components:
           x-required: true, если выбран способ доставки courier
           schema:
             $ref: '#/components/schemas/PostalCode'
-  
+
+      LatRequired:
+          name: lat
+          description: Широта
+          required: true
+          in: query   
+          schema:
+            $ref: '#/components/schemas/LatNonNullable'
+      Lat:
+          name: lat
+          description: Широта
+          required: false
+          in: query   
+          schema:
+            $ref: '#/components/schemas/Lat'
+      LngRequired:
+          name: lat
+          description: Широта
+          required: true
+          in: query   
+          schema:
+            $ref: '#/components/schemas/LngNonNullable'
+      Lng:
+          name: lng
+          description: Долгота
+          required: false
+          in: query   
+          schema:
+            $ref: '#/components/schemas/Lng'
+
+
   schemas:
     UserID:
         description: GUID пользователя
@@ -10199,10 +9974,22 @@ components:
 
     PostamatProvider:
           description: Провайдер ПВЗ (служба доставки)
+          nullable: true
           type: string
           example: yandex
     PostamatCode:
           description: Внешний идентификатор ПВЗ
+          nullable: true
+          type: string
+          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+    PostamatProviderNotNullable:
+          description: Провайдер ПВЗ (служба доставки)
+          nullable: false
+          type: string
+          example: yandex
+    PostamatCodeNotNullable:
+          description: Внешний идентификатор ПВЗ
+          nullable: false
           type: string
           example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
 
@@ -10243,6 +10030,13 @@ components:
 
     ShopGuid:
           description: Внешний идентификатор магазина
+          type: string
+          nullable: true
+          x-source: shop.shop_guid в api/v1/geo/points
+          example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+    ShopGuidNotNullable:
+          description: Внешний идентификатор магазина
+          nullable: false
           type: string
           x-source: shop.shop_guid в api/v1/geo/points
           example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
@@ -10316,7 +10110,31 @@ components:
           type: string
           nullable: true
           example: 101000
-
+    AddressFull:
+          description: Полный адрес
+          type: string
+          nullable: true
+          example: 101000, Россия, Москва, 15-я Парковая улица, д.15, кв.123
+    Lat:
+          type: string
+          nullable: true
+          description: Широта (координаты)
+          example: "56.395931"
+    Lng:
+          type: string
+          nullable: true
+          description: Долгота (координаты)
+          example: "38.712349"
+    LatNonNullable:
+          type: string
+          nullable: false
+          description: Широта (координаты)
+          example: "56.395931"
+    LngNonNullable:
+          type: string
+          nullable: false
+          description: Долгота (координаты)
+          example: "38.712349"
 
     ErrorModel:
       type: object
@@ -10344,8 +10162,29 @@ components:
         status:
           type: string
           example: fail
-
-    problems:
+    
+    ValidationMessage:
+                  type: object
+                  description: Сообщение об ошибке валидации
+                  properties:
+                    code:
+                      type: string
+                      nullable: true
+                    message:
+                      type: string
+                      nullable: true
+                      description: Текстовое сообщение
+                    field:
+                      type: string
+                      nullable: true
+                      description: Имя поля в DTO, которое вызвало исключение
+                    severity:
+                      enum:
+                      - error
+                      - warning
+                      - info
+                      type: string
+    OrderValidationError:
       title: OrderValidationError
       description: Массив проблем в передаваемой на расчёт модели
       type: array
@@ -10364,7 +10203,7 @@ components:
             - UNAVAILABLE_PRODUCTS` — В корзине есть недоступные к заказу продукты
             - DELIVERY_METHOD_INVALID` — Выбран ндоступный способ доставки
             - DELIVERY_PROFILE_INVALID` — Выбран некорректный профиль доставки"
-            example: DELIVERY_PROFILE_INVALID
+            example: INTERVAL_INVALID
           field:
             type: string
             description: Поле, в котором допущена ошибка
