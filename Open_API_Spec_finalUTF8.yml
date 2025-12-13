@@ -1181,7 +1181,7 @@ paths:
       operationId: orderNewCourierV5
       summary: Создание заказа курьер v5
       description: | 
-        Создание заказа для сПособа доставки Курьером
+        Создание заказа для способа доставки Курьером
         * Если calculated_by_dc = true,  ФИАСы являются обязательными: city_key_id и/или settlement_key_id 
       tags:
       - order
@@ -1251,7 +1251,6 @@ paths:
                           example: 3099
               required: 
               - postal_code
-              - city
               - street
               - house          
               properties:
