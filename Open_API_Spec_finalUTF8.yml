@@ -9659,7 +9659,7 @@ components:
       CalculatedByDC:
           name: calculated_by_dc
           in: query    
-          description: Признак расчета доставки в Delivery Calc Service        
+          description: Признак расчета доставки в Delivery Calc Service (nullable)       
           required: true
           schema:
             $ref: '#/components/schemas/CalculatedByDC'
@@ -9667,13 +9667,13 @@ components:
           name: calculation_success
           in: query            
           required: false
-          description: Признак, что для ФИАС/индекса ранее был получен успешный результат детального расчета от Delivery Calc Service
+          description: Признак, что для ФИАС/индекса ранее был получен успешный расчет DC (nullable)
           x-required: true, если calculated_by_dc = true
           schema:
             $ref: '#/components/schemas/CalculationSuccess'
       PostamatProvider:
           name: postamat_provider
-          description: Провайдер ПВЗ (служба доставки). . Обязателен, если выбран способ доставки postamat
+          description: Провайдер ПВЗ (служба доставки). Обязателен, если выбран способ доставки postamat (nullable)
           in: query        
           required: false
           x-required: true, если выбран способ доставки postamat
@@ -9685,13 +9685,13 @@ components:
           in: query          
           required: false
           x-required: true, если выбран способ доставки postamat
-          description: Внешний идентификатор ПВЗ. Обязателен, если выбран способ доставки postamat
+          description: Внешний идентификатор ПВЗ. Обязателен, если выбран способ доставки postamat (nullable)
           x-source: postamat_id / code  в api/v1/geo/points
           schema:
             $ref: '#/components/schemas/PostamatCode'
       PostamatProviderRequired:
           name: provider
-          description: Провайдер ПВЗ (служба доставки)
+          description: Провайдер ПВЗ (служба доставки)  (not nullable)
           in: query        
           required: true
           x-source: postamat.provider в api/v1/geo/points
@@ -9701,7 +9701,7 @@ components:
           name: code
           in: query          
           required: true
-          description: Внешний идентификатор ПВЗ, уникален только в пределах группы провайдера, не является ключом
+          description: Внешний идентификатор ПВЗ, уникален только в пределах группы провайдера, не является ключом (not nullable)
           x-source: postamat_id / code  в api/v1/geo/points
           schema:
             $ref: '#/components/schemas/PostamatCodeNotNullable'
@@ -9758,7 +9758,7 @@ components:
 
       ShopGuid:
           name: shop_guid
-          description: Внешний идентификатор магазина. . Обязателен, если выбран способ доставки pickup
+          description: Внешний идентификатор магазина. . Обязателен, если выбран способ доставки pickup (nullable)
           required: false
           x-required: true, если выбран способ доставки pickup
           in: query   
@@ -9767,7 +9767,7 @@ components:
 
       ShopGuidRequired:
           name: shop_guid
-          description: Внешний идентификатор магазина
+          description: Внешний идентификатор магазина (not nullable)
           required: true
           in: query   
           schema:
@@ -9799,7 +9799,7 @@ components:
           name: region_key_id
           description: ФИАС региона 
           required: false
-          x-required: true, если выбран способ доставки courier
+          x-required: true, если выбран способ доставки courier (nullable)
           in: query  
           schema:
             $ref: '#/components/schemas/RegionKeyID'
@@ -9813,7 +9813,7 @@ components:
             $ref: '#/components/schemas/Area'
       City:
           name: city
-          description: Город 
+          description: Город (nullable)
           required: false
           x-required: true, если выбран способ доставки courier
           in: query  
@@ -9821,26 +9821,26 @@ components:
             $ref: '#/components/schemas/City'
       CityKeyID:
           name: city_key_id
-          description: ФИАС города 
+          description: ФИАС города (nullable)
           required: false
           in: query
-          x-required: true, если выбран способ доставки courier
+          x-required: true, если выбран способ доставки courier (nullable)
           schema:
             $ref: '#/components/schemas/CityKeyID'
       Settlement:
           name: settlement
-          description: Населенный пункт 
+          description: Населенный пункт (nullable)
           required: false
-          x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement ИЛИ city
+          x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement ИЛИ city (nullable)
           in: query
           schema:
             $ref: '#/components/schemas/Settlement'
       SettlementKeyID:
           name: settlement_key_id
-          description: ФИАС населенного пункта
+          description: ФИАС населенного пункта (nullable)
           required: false
           in: query
-          x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement_key_id ИЛИ city_key_id
+          x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement_key_id ИЛИ city_key_id (nullable)
           schema:
             $ref: '#/components/schemas/SettlementKeyID'
       Street:
@@ -9874,28 +9874,28 @@ components:
 
       LatRequired:
           name: lat
-          description: Широта
+          description: Широта (not nullable)
           required: true
           in: query   
           schema:
             $ref: '#/components/schemas/LatNonNullable'
       Lat:
           name: lat
-          description: Широта
+          description: Широта (nullable)
           required: false
           in: query   
           schema:
             $ref: '#/components/schemas/Lat'
       LngRequired:
           name: lat
-          description: Широта
+          description: Долгота (not nullable)
           required: true
           in: query   
           schema:
             $ref: '#/components/schemas/LngNonNullable'
       Lng:
           name: lng
-          description: Долгота
+          description: Долгота (nullable)
           required: false
           in: query   
           schema:
