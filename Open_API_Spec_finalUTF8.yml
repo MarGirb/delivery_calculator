@@ -24,7 +24,7 @@ paths:
       summary: Калькуляция заказа v5
       description: |
         * Возвращает расчет способов оплаты и доставки для текущего заказа с учетом переданных параметров.
-        * Для courier должна быть заполнена Пара settlement + settlement_key_id ИЛИ city + city_key_id 
+        * Если calculated_by_dc = true, для courier должна быть заполнена Пара settlement + settlement_key_id ИЛИ city + city_key_id 
 
       tags:
       - order
