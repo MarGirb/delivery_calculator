@@ -1176,7 +1176,7 @@ paths:
                 - $ref: "#/components/schemas/ErrorModel"
                 - $ref: "#/components/schemas/ValidationMessage"
 
-  /api/v5/orders/courier/:
+  /api/v5/order/courier/:
     post:
       operationId: orderNewCourierV5
       summary: Создание заказа курьер v5
@@ -4216,7 +4216,7 @@ paths:
                       - info
                       type: string
 
-  /api/v5/orders/pickup/:
+  /api/v5/order/pickup/:
     post:
       operationId: orderNewPickupVХ
       summary: Создание заказа самовывоз из магазина v5
@@ -6844,7 +6844,7 @@ paths:
               schema:
                  $ref: "#/components/schemas/ValidationMessage"
 
-  /api/v5/orders/postamat/:
+  /api/v5/order/postamat/:
     post:
       operationId: orderNewPostamatV5
       summary: Создание заказа постомат v5
