@@ -10,6 +10,8 @@ servers:
 security:
 - auth: []
 tags:
+- name: geo
+  description: Местоположение
 - name: shop
   description: Магазины
 - name: postamat
@@ -18,13 +20,98 @@ tags:
   description: Заказ
 
 paths:
+  /api/geo/locality:
+    get:
+      summary: Адреса по координатам
+      description:  |
+        Возвращает ближайшие адреса (дома, улицы, города)  с ФИАСами по координатам. Только для России
+      tags:
+      - geo
+      parameters:
+      - $ref: '#/components/parameters/LatRequired'
+      - $ref: '#/components/parameters/LngRequired'
+ 
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: object
+                description: массив подсказок адресов
+                title: Locality
+                properties:
+                  items:
+                    type: array
+                    items:
+                      title: Locality
+                      description: магазин
+                      type: object
+                      properties:
+                        service: 
+                          type: string
+                          example: dadata
+                          description: геопровайдер
+                        value:
+                          type: string
+                          example: Москва, р-н Внуково, поселок совхоза Крёкшино, ул Парковая, д 15
+                          description: отображаемый текст адреса
+                        data:
+                          type: object
+                          properties:
+                            country_code:
+                              $ref: '#/components/schemas/CountryCode'
+                            country:
+                              $ref: '#/components/schemas/Country'
+                            region:
+                              $ref: '#/components/schemas/Region'
+                            region_key_id:
+                              $ref: '#/components/schemas/RegionKeyID'
+                            area:
+                              $ref: '#/components/schemas/Area'
+                            city:
+                              $ref: '#/components/schemas/City'
+                            city_key_id:
+                              $ref: '#/components/schemas/CityKeyID'
+                            settlement:
+                              $ref: '#/components/schemas/Settlement'
+                            settlement_key_id:
+                              $ref: '#/components/schemas/SettlementKeyID'
+                            street:
+                              $ref: '#/components/schemas/Street'
+                            house:
+                              $ref: '#/components/schemas/House'
+                            postal_code: 
+                              $ref: '#/components/schemas/PostalCode'
+                            geometry:
+                              type: object
+                              properties:
+                                location:
+                                  type: object
+                                  properties:
+                                    lat: 
+                                     type: number
+                                     description: широта
+                                     example: 56.395931
+                                    lng: 
+                                     type: number
+                                     description: долгота
+                                     example: 38.712349
+
+        default:
+          description: Exceptions Response
+          content:
+            application/json:
+              schema:
+                 $ref: "#/components/schemas/ValidationMessage"
+  
   /api/v5/order/new/:
     get:
       operationId: orderCalculationV5
       summary: Калькуляция заказа v5
       description: |
         * Возвращает расчет способов оплаты и доставки для текущего заказа с учетом переданных параметров.
-        * Если calculated_by_dc = true, для courier должна быть заполнена Пара settlement + settlement_key_id ИЛИ city + city_key_id 
+        * Если calculated_by_dc = true, должна быть заполнена пара settlement + settlement_key_id И/ИЛИ city + city_key_id 
 
       tags:
       - order
@@ -1182,7 +1269,7 @@ paths:
       summary: Создание заказа курьер v5
       description: | 
         Создание заказа для способа доставки Курьером
-        * Если calculated_by_dc = true,  ФИАСы являются обязательными: city_key_id и/или settlement_key_id 
+        * Если calculated_by_dc = true, должна быть заполнена пара city+city_key_id и/или settlement+settlement_key_id 
       tags:
       - order
       x-noready: true
@@ -4017,10 +4104,10 @@ paths:
 
   /api/v1/geo/points:
     get:
-      summary: Список ПВЗ и магазинов при оформлении заказа
+      summary: Список ПВЗ и магазинов в чекауте
       description: |
         Возвращает список ПВЗ и/или магазинов для выбора при оформлении заказа
-        * должен быть передан или ФИАСы, или координаты, или ФИАСы + координаты
+        - Если *calculated_by_dc, должен быть заполнен city_key_id и/или settlement_key_id
       tags:
       - postamat
       - shop
@@ -4028,8 +4115,8 @@ paths:
       parameters:
       - $ref: '#/components/parameters/Lat'
       - $ref: '#/components/parameters/Lng'
-      - $ref: '#/components/parameters/CityKeyID'
-      - $ref: "#/components/parameters/SettlementKeyID"
+      - $ref: '#/components/parameters/CityKeyIDRequired'
+      - $ref: "#/components/parameters/SettlementKeyIDRequired"
       - name: delivery_service_code
         in: query
         description: Фильтр по способу доставки (можно передать несколько значений)
@@ -4055,16 +4142,16 @@ paths:
       - name: pickup_calculated_by_dc
         in: query
         x-source: Ответ метода GET /api/v5/order/ new   delivery.items.pickup.calculated_by_dc
-        description: Признак доступности расчета доставки для pickup через DC
-        required: true
+        description: Признак доступности расчета доставки для pickup через DC. Обязательно для [pickup]
+        required: false
         example: true
         schema:
           type: boolean
       - name: postamat_calculated_by_dc
         in: query
         x-source: Ответ метода GET /api/v5/order/ new   delivery.items.postamat.calculated_by_dc
-        description: Признак доступности расчета доставки для postamat через DC
-        required: true
+        description: Признак доступности расчета доставки для postamat через DC. Обязательно для [postamat]
+        required: false
         example: true
         schema:
           type: boolean
@@ -4219,10 +4306,10 @@ paths:
   /api/v5/order/new/pickup/:
     post:
       operationId: orderNewPickupVХ
-      summary: Создание заказа самовывоз из магазина v5
+      summary: Создание заказа на самовывоз из магазина v5
       description: |
         Создание заказа с типом доставки самовывоз из магазина (pickup) 
-        * Если calculated_by_dc = true,  city_key_id не nullable
+        * Если calculated_by_dc = true,  city_key_id должен быть заполнен
       tags:
       - order
       requestBody:
@@ -6847,10 +6934,10 @@ paths:
   /api/v5/order/new/postamat/:
     post:
       operationId: orderNewPostamatV5
-      summary: Создание заказа постомат v5
+      summary: Создание заказа на самовывоз из ПВЗ v5
       description: |
         Создание заказа с типом доставки самовывоз из ПВЗ (postamat)
-        * Если calculated_by_dc = true,  city_key_id не nullable
+        * Если calculated_by_dc = true,  city_key_id должен быть заполнен
       tags:
       - order
       x-noready: true
@@ -9658,7 +9745,7 @@ components:
       CalculatedByDC:
           name: calculated_by_dc
           in: query    
-          description: Признак расчета доставки в Delivery Calc Service (nullable)       
+          description: Признак расчета доставки в Delivery Calc Service   
           required: true
           schema:
             $ref: '#/components/schemas/CalculatedByDC'
@@ -9666,13 +9753,13 @@ components:
           name: calculation_success
           in: query            
           required: false
-          description: Признак, что для ФИАС/индекса ранее был получен успешный расчет DC (nullable)
+          description: Признак, что для ФИАС/индекса ранее был получен успешный расчет DC 
           x-required: true, если calculated_by_dc = true
           schema:
             $ref: '#/components/schemas/CalculationSuccess'
       PostamatProvider:
           name: postamat_provider
-          description: Провайдер ПВЗ (служба доставки). Обязателен, если выбран способ доставки postamat (nullable)
+          description: Провайдер ПВЗ (служба доставки). Обязателен, если выбран способ доставки postamat 
           in: query        
           required: false
           x-required: true, если выбран способ доставки postamat
@@ -9684,13 +9771,13 @@ components:
           in: query          
           required: false
           x-required: true, если выбран способ доставки postamat
-          description: Внешний идентификатор ПВЗ. Обязателен, если выбран способ доставки postamat (nullable)
+          description: Внешний идентификатор ПВЗ. Обязателен, если выбран способ доставки postamat 
           x-source: postamat_id / code  в api/v1/geo/points
           schema:
             $ref: '#/components/schemas/PostamatCode'
       PostamatProviderRequired:
           name: provider
-          description: Провайдер ПВЗ (служба доставки)  (not nullable)
+          description: Провайдер ПВЗ (служба доставки)  
           in: query        
           required: true
           x-source: postamat.provider в api/v1/geo/points
@@ -9700,7 +9787,7 @@ components:
           name: code
           in: query          
           required: true
-          description: Внешний идентификатор ПВЗ, уникален только в пределах группы провайдера, не является ключом (not nullable)
+          description: Внешний идентификатор ПВЗ, уникален только в пределах группы провайдера, не является ключом 
           x-source: postamat_id / code  в api/v1/geo/points
           schema:
             $ref: '#/components/schemas/PostamatCodeNotNullable'
@@ -9757,7 +9844,7 @@ components:
 
       ShopGuid:
           name: shop_guid
-          description: Внешний идентификатор магазина. . Обязателен, если выбран способ доставки pickup (nullable)
+          description: Внешний идентификатор магазина. . Обязателен, если выбран способ доставки pickup 
           required: false
           x-required: true, если выбран способ доставки pickup
           in: query   
@@ -9766,7 +9853,7 @@ components:
 
       ShopGuidRequired:
           name: shop_guid
-          description: Внешний идентификатор магазина (not nullable)
+          description: Внешний идентификатор магазина
           required: true
           in: query   
           schema:
@@ -9782,7 +9869,6 @@ components:
       CountryCode:
           name: country_code
           required: true
-          x-required: true, если выбран способ доставки courier
           in: query  
           schema:
             $ref: '#/components/schemas/CountryCode' 
@@ -9812,23 +9898,28 @@ components:
             $ref: '#/components/schemas/Area'
       City:
           name: city
-          description: Город (nullable)
+          description: Город 
           required: false
-          x-required: true, если выбран способ доставки courier
           in: query  
           schema:
             $ref: '#/components/schemas/City'
       CityKeyID:
           name: city_key_id
-          description: ФИАС города (nullable)
+          description: ФИАС города 
           required: false
           in: query
-          x-required: true, если выбран способ доставки courier (nullable)
+          schema:
+            $ref: '#/components/schemas/CityKeyID'
+      CityKeyIDRequired:
+          name: city_key_id
+          description: ФИАС города (nullable)
+          required: true
+          in: query
           schema:
             $ref: '#/components/schemas/CityKeyID'
       Settlement:
           name: settlement
-          description: Населенный пункт (nullable)
+          description: Населенный пункт 
           required: false
           x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement ИЛИ city (nullable)
           in: query
@@ -9836,10 +9927,17 @@ components:
             $ref: '#/components/schemas/Settlement'
       SettlementKeyID:
           name: settlement_key_id
-          description: ФИАС населенного пункта (nullable)
+          description: ФИАС населенного пункта 
           required: false
           in: query
           x-required: true, если выбран способ доставки courier. Должен быть заполнен settlement_key_id ИЛИ city_key_id (nullable)
+          schema:
+            $ref: '#/components/schemas/SettlementKeyID'
+      SettlementKeyIDRequired:
+          name: settlement_key_id
+          description: ФИАС населенного пункта (nullable)
+          required: true
+          in: query
           schema:
             $ref: '#/components/schemas/SettlementKeyID'
       Street:
@@ -9880,13 +9978,13 @@ components:
             $ref: '#/components/schemas/LatNonNullable'
       Lat:
           name: lat
-          description: Широта (nullable)
+          description: Широта 
           required: false
           in: query   
           schema:
             $ref: '#/components/schemas/Lat'
       LngRequired:
-          name: lat
+          name: lng
           description: Долгота (not nullable)
           required: true
           in: query   
@@ -9894,7 +9992,7 @@ components:
             $ref: '#/components/schemas/LngNonNullable'
       Lng:
           name: lng
-          description: Долгота (nullable)
+          description: Долгота 
           required: false
           in: query   
           schema:
@@ -10041,14 +10139,14 @@ components:
           example: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
 
     CountryCode:
-          description: Код страны 
+          description: 2х-буквенный ISO-код страны 
           type: string
           nullable: false
           example: RU
     Country:
           description: Страна 
           type: string
-          nullable: true
+          nullable: false
           example: Россия
     Region:
           description: Регион 
@@ -10060,6 +10158,17 @@ components:
           type: string
           nullable: true
           example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+    RegionNonNullable:
+          description: Регион 
+          type: string
+          nullable: false
+          example: Москва
+    RegionKeyIDNonNullable:
+          description: ФИАС региона 
+          type: string
+          nullable: false
+          example: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+
     Area:
           description: Район 
           type: string
