@@ -4167,6 +4167,7 @@ paths:
       description: |
         Возвращает список ПВЗ и/или магазинов для выбора при оформлении заказа
         - Если *calculated_by_dc = true, должен быть заполнен city_key_id и/или settlement_key_id
+        - Если *calculated_by_dc = false, координаты должны быть заполнены, для поддержки логики монолита as is
       tags:
       - postamat
       - shop
@@ -4184,7 +4185,7 @@ paths:
           type: array
           items:
             type: string
-            description: Код способа доставки, для котрого нужно получить список
+            description: Код способа доставки, для которого нужно получить список
             enum:
             - pickup
             - postamat
