@@ -10402,7 +10402,7 @@ components:
         message:
           type: string
           description: Текст сообщения об ошибки
-        errors:
+        error:
           type: array
         status:
           type: string
