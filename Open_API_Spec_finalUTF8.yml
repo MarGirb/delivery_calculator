@@ -20,11 +20,13 @@ tags:
   description: Заказ
 
 paths:
-  /api/geo/locality:
+  /api/v1/geo/locality:
     get:
       summary: Адреса по координатам
       description:  |
-        Возвращает ближайшие адреса (дома, улицы, города)  с ФИАСами по координатам. Только для России
+       -  Возвращает ближайшие адреса (дома, улицы, города)  с ФИАСами
+        - Адреса в ответе идут в порядке удаления от заданных координат
+        - Только для России
       tags:
       - geo
       parameters:
@@ -40,12 +42,14 @@ paths:
                 type: object
                 description: массив подсказок адресов
                 title: Locality
+                required: 
+                   - items
                 properties:
                   items:
                     type: array
                     items:
-                      title: Locality
-                      description: магазин
+                      title: LocalityResponse
+                      description: найденный адрес
                       type: object
                       properties:
                         service: 
@@ -54,7 +58,7 @@ paths:
                           description: геопровайдер
                         value:
                           type: string
-                          example: Москва, р-н Внуково, поселок совхоза Крёкшино, ул Парковая, д 15
+                          example: Москва, р-н Внуково, поселок совхоза Крёкшино, 15-я Парковая улица, д 15
                           description: отображаемый текст адреса
                         data:
                           type: object
@@ -97,13 +101,42 @@ paths:
                                      type: number
                                      description: долгота
                                      example: 38.712349
-
+              examples:
+                with_items:
+                  summary: Найдены адреса по координатам
+                  value:
+                    items:
+                    - service: dadata
+                      value: "Санкт-Петербург, поселок Лисий Нос, Большой пр-кт, д 10"
+                      data:
+                        country: "Россия"
+                        country_code: "RU"
+                        region: "Санкт-Петербург"
+                        region_key_id: "c2deb16a-0330-4f05-821f-1d09c93331e6"
+                        area: 
+                        city: "Санкт-Петербург"
+                        city_key_id: "c2deb16a-0330-4f05-821f-1d09c93331e6"
+                        settlement: "Москва"
+                        settlement_key_id: "43fdf07b-c22d-42af-9655-6684ee243c21"
+                        street: "Большой пр-кт"
+                        house: 10
+                        postal_code: "197755"
+                        geometry:
+                          location:
+                            lat: 59.773411
+                            lng: 30.13051                  
+                empty:
+                  summary: Ничего не найдено
+                  value:
+                    items:[]
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
-                 $ref: "#/components/schemas/ValidationMessage"
+                oneOf:
+                  - $ref: '#/components/schemas/DefaultValidationMessage'
+                  - $ref: '#/components/schemas/DefaultErrorModel'
   
   /api/v5/order/new/:
     get:
@@ -111,7 +144,9 @@ paths:
       summary: Калькуляция заказа v5
       description: |
         * Возвращает расчет способов оплаты и доставки для текущего заказа с учетом переданных параметров.
-        * Если calculated_by_dc = true, должна быть заполнена пара settlement + settlement_key_id И/ИЛИ city + city_key_id 
+        * Если calculated_by_dc = true:
+          - для courier должна быть заполнена пара settlement + settlement_key_id И/ИЛИ city + city_key_id 
+          - для postamat и pickup должен быть заполнен city_key_id
 
       tags:
       - order
@@ -1253,15 +1288,15 @@ paths:
                     items:
                       type: string
                   problems:
-                    $ref: '#/components/schemas/OrderValidationError'
+                    $ref: '#/components/schemas/OrderValidationProblem'
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/ErrorModel"
-                - $ref: "#/components/schemas/ValidationMessage"
+                  - $ref: '#/components/schemas/DefaultValidationMessage'
+                  - $ref: '#/components/schemas/DefaultErrorModel'
 
   /api/v5/order/new/courier/:
     post:
@@ -3927,17 +3962,34 @@ paths:
                     type: string
                     example: 30990 руб.
         "409":
-          description: Exceptions Response
+          description: Оформление заказа недоступно
           content:
             application/json:
               schema:
-                 $ref: '#/components/schemas/ErrorModel'
+                $ref: "#/components/schemas/Del_CalcValidationMessage"
+              examples:
+                DC_CITY_NOT_FOUND:
+                  $ref: '#/components/examples/DC_CITY_NOT_FOUND'
+                DC_deliveryModes_unavailable:
+                  $ref: '#/components/examples/DC_deliveryModes_unavailable'
+                DC_STOCKS_NOT_AVAILABLE:
+                  $ref: '#/components/examples/DC_STOCKS_NOT_AVAILABLE'
+                DC_paymentMethods_unavailable:
+                  $ref: '#/components/examples/DC_paymentMethods_unavailable'
+                DC_INTERVAL_INVALID:
+                  $ref: '#/components/examples/DC_INTERVAL_INVALID'
+                DC_SLOTS_INVALID:
+                  $ref: '#/components/examples/DC_SLOTS_INVALID'
+
+
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
-                 $ref: "#/components/schemas/ValidationMessage"
+                oneOf:
+                  - $ref: '#/components/schemas/DefaultValidationMessage'
+                  - $ref: '#/components/schemas/DefaultErrorModel'
 
   /api/v1/geo/points/postamat:
     get:
@@ -4001,19 +4053,28 @@ paths:
                     description: Стоимость доставки в данный ПВЗ Если 0, то возвращать строку "Бесплатно", если стоимость есть, то отформатированную стоимость вида 1 000 ₽. Если цена для предоплаты и постоплаты отличается, возвращать диапазон
                     example: 399-699 ₽
                     x-source: метод cart
+        "404":
+          description: Постамат не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorModel'
+              example:
+                    key: NOT FOUND
+                    message: "[code] not found"        
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
                 oneOf:
-                - $ref: '#/components/schemas/ErrorModel'
-                - $ref: "#/components/schemas/ValidationMessage"
+                - $ref: '#/components/schemas/DefaultErrorModel'
+                - $ref: "#/components/schemas/DefaultValidationMessage"
 
   /api/v1/geo/points/shop:
     get:
       summary: Получение детальной страницы магазина
-      description: Согласованный контракт
+      description: Возвращает детальные данные по магазину
       tags:
       - shop
       security: []
@@ -4028,9 +4089,18 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - shop_id
+                  - provider
+                  - name
+                  - city_key_id
+                  - city
+                  - address
+                  - lat
+                  - lng
                 properties:
                   shop_id:
-                    $ref: "#/components/schemas/ShopGuid"
+                    $ref: "#/components/schemas/ShopGuidNotNullable"
                   provider:
                     type: string
                     description: Всегда lime
@@ -4073,41 +4143,30 @@ paths:
                     description: Стоимость доставки в данный ПВЗ Если 0, то возвращать строку "Бесплатно", если стоимость есть, то отформатированную стоимость вида 1 000 ₽. Если цена для предоплаты и постоплаты отличается, возвращать диапазон
                     example: Бесплатно
                     x-source: метод cart
+        "404":
+          description: Магазин не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorModel'
+              example:
+                    key: NOT FOUND
+                    message: "[shop_id] not found"
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
                 oneOf:
-                - $ref: '#/components/schemas/ErrorModel'
-                - title: ValidationMessage
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
+                  - $ref: '#/components/schemas/DefaultValidationMessage'
+                  - $ref: '#/components/schemas/DefaultErrorModel'
 
   /api/v1/geo/points:
     get:
       summary: Список ПВЗ и магазинов в чекауте
       description: |
         Возвращает список ПВЗ и/или магазинов для выбора при оформлении заказа
-        - Если *calculated_by_dc, должен быть заполнен city_key_id и/или settlement_key_id
+        - Если *calculated_by_dc = true, должен быть заполнен city_key_id и/или settlement_key_id
       tags:
       - postamat
       - shop
@@ -4132,7 +4191,7 @@ paths:
           example: [ pickup, postamat ]
       - name: has_fragile
         in: query
-        description: Наличие в составе заказа товаров, требующих особых условий доставки
+        description: Наличие в составе заказа товаров, требующих особых условий доставки. Требуется только на переходный период для поддержки логики монолита as is, потом можно удалить
         required: false
         x-source: Берется из корзины, определяет наличие товаров, требующих аккуратной транспортировки (парфюм)
         example: 1
@@ -4172,6 +4231,10 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - filters
+                  - shops
+                  - postamats
                 properties:
                   filters:
                     type: array
@@ -4218,9 +4281,9 @@ paths:
                           description: адрес
                           example: Москва, р-н Замоскворечье, Павелецкая пл, д 3
                         lat:
-                          $ref: "#/components/schemas/Lat"
+                          $ref: "#/components/schemas/LatNonNullable"
                         lng:
-                          $ref: "#/components/schemas/Lng"
+                          $ref: "#/components/schemas/LngNonNullable"
                         phone:
                           type: string
                           nullable: true
@@ -4244,9 +4307,9 @@ paths:
                       description: Пункт выдачи
                       properties:
                         code:
-                          $ref: "#/components/schemas/PostamatCode"
+                          $ref: "#/components/schemas/PostamatCodeNotNullable"
                         provider:
-                          $ref: "#/components/schemas/PostamatProvider"
+                          $ref: "#/components/schemas/PostamatProviderNotNullable"
                         name:
                           type: string
                           description: Название пункта выдачи
@@ -4261,9 +4324,9 @@ paths:
                           description: адрес
                           example: Москва, улица Генерала Белова, 1/8
                         lat:
-                          $ref: "#/components/schemas/Lat"
+                          $ref: "#/components/schemas/LatNonNullable"
                         lng:
-                          $ref: "#/components/schemas/Lng"
+                          $ref: "#/components/schemas/LngNonNullable"
                         work_schedule:
                           type: string
                           nullable: true
@@ -4274,34 +4337,87 @@ paths:
                           type: string
                           description: Стоимость доставки в данный ПВЗ Если 0, то возвращать строку "Бесплатно", если стоимость есть, то отформатированную стоимость вида 1 000 ₽. Если цена для предоплаты и постоплаты отличается, возвращать диапазон
                           example: 399-699 ₽
+              examples:
+                with_data:
+                  summary: магазины и постаматы
+                  value:
+                    filters:
+                      - code: yandex
+                        name: Яндекс
+                        icon: string
+
+                    shops:
+                      - guid: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+                        code: lime
+                        name: "МСК Павелецкая Плаза"
+                        city_key_id: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                        city: Москва
+                        address: "Москва, р-н Замоскворечье, Павелецкая пл, д 3"
+                        lat: "56.395931"
+                        lng: "38.712349"
+                        phone: "+7 (999) 777-66-55"
+                        work_schedule: "пн-вс: 10.00-22.00"
+                        price_formatted: Бесплатно
+
+                    postamats:
+                      - code: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+                        provider: yandex
+                        name: "Пункт выдачи заказов ЯНДЕКС"
+                        city_key_id: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                        city: Москва
+                        address: "Москва, улица Генерала Белова, 1/8"
+                        lat: "56.395931"
+                        lng: "38.712349"
+                        work_schedule: "пн-вс: 10.00-22.00"
+                        price_formatted: "399-699 ₽"
+                only_shops:
+                  summary: Только магазины
+                  value:
+                    filters: []
+                    shops:
+                      - guid: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+                        code: lime
+                        name: "МСК Павелецкая Плаза"
+                        city_key_id: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                        city: Москва
+                        address: "Москва, р-н Замоскворечье, Павелецкая пл, д 3"
+                        lat: "56.395931"
+                        lng: "38.712349"
+                        phone: "+7 (999) 777-66-55"
+                        work_schedule: "пн-вс: 10.00-22.00"
+                        price_formatted: Бесплатно
+                    postamats: []
+
+                only_postamats:
+                  summary: Только постаматы
+                  value:
+                    filters:
+                      - code: yandex
+                        name: Яндекс
+                        icon: string
+                    shops: []
+                    postamats:
+                      - code: 005f5fbc-72a0-4c4e-8c92-25fad4b1722f
+                        provider: yandex
+                        name: "Пункт выдачи заказов ЯНДЕКС"
+                        city_key_id: 0c5b2444-70a0-4932-980c-b4dc0d3f02b5
+                        city: Москва
+                        address: "Москва, улица Генерала Белова, 1/8"
+                        lat: "56.395931"
+                        lng: "38.712349"
+                        work_schedule: "пн-вс: 10.00-22.00"
+                        price_formatted: "399-699 ₽"
+
+        "422":
+          $ref: '#/components/responses/MissingKeyID422'
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
                 oneOf:
-                - $ref: '#/components/schemas/ErrorModel'
-                - title: ValidationMessage
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
+                - $ref: '#/components/schemas/DefaultErrorModel'
+                - $ref: '#/components/schemas/DefaultValidationMessage'
 
   /api/v5/order/new/pickup/:
     post:
@@ -6919,17 +7035,32 @@ paths:
                     type: string
                     example: 30990 руб.
         "409":
-          description: Exceptions Response
+          description: Оформление заказа недоступно
           content:
             application/json:
               schema:
-                 $ref: '#/components/schemas/ErrorModel'
+                $ref: "#/components/schemas/Del_CalcValidationMessage"
+              examples:
+                DC_CITY_NOT_FOUND:
+                  $ref: '#/components/examples/DC_CITY_NOT_FOUND'
+                DC_deliveryModes_unavailable:
+                  $ref: '#/components/examples/DC_deliveryModes_unavailable'
+                DC_STOCKS_NOT_AVAILABLE:
+                  $ref: '#/components/examples/DC_STOCKS_NOT_AVAILABLE'
+                DC_paymentMethods_unavailable:
+                  $ref: '#/components/examples/DC_paymentMethods_unavailable'
+                DC_pickup_unavailable:
+                  $ref: '#/components/examples/DC_pickup_unavailable'
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
-                 $ref: "#/components/schemas/ValidationMessage"
+                oneOf:
+                  - $ref: '#/components/schemas/DefaultValidationMessage'
+                  - $ref: '#/components/schemas/DefaultErrorModel'
+
+                 
 
   /api/v5/order/new/postamat/:
     post:
@@ -9580,17 +9711,32 @@ paths:
                     type: string
                     example: 30990 руб.
         "409":
-          description: Exceptions Response
+          description: Оформление заказа недоступно
           content:
             application/json:
               schema:
-                 $ref: '#/components/schemas/ErrorModel'
+                $ref: "#/components/schemas/Del_CalcValidationMessage"
+              examples:
+                DC_CITY_NOT_FOUND:
+                  $ref: '#/components/examples/DC_CITY_NOT_FOUND'
+                DC_deliveryModes_unavailable:
+                  $ref: '#/components/examples/DC_deliveryModes_unavailable'
+                DC_STOCKS_NOT_AVAILABLE:
+                  $ref: '#/components/examples/DC_STOCKS_NOT_AVAILABLE'
+                DC_paymentMethods_unavailable:
+                  $ref: '#/components/examples/DC_paymentMethods_unavailable'
+                DC_postamat_unavailable:
+                  $ref: '#/components/examples/DC_postamat_unavailable'
+
+        
         default:
           description: Exceptions Response
           content:
             application/json:
               schema:
-                 $ref: "#/components/schemas/ValidationMessage"
+                oneOf:
+                  - $ref: '#/components/schemas/DefaultValidationMessage'
+                  - $ref: '#/components/schemas/DefaultErrorModel'
 
 components:
 
@@ -10244,56 +10390,77 @@ components:
           description: Долгота (координаты)
           example: "38.712349"
 
-    ErrorModel:
+    DefaultErrorModel:
       type: object
       title: Exception
+      description: Исключение
       properties:
-        code:
-          type: integer
-          minimum: 400
-          maximum: 599
-          example: 409
-        message:
+        key:
           type: string
           description: Ключ ошибки
+        message:
+          type: string
+          description: Текст сообщения об ошибки
+        errors:
+          type: array
+        status:
+          type: string
+
+    
+    DefaultValidationMessage:
+      type: object
+      description: Сообщение об ошибке валидации
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+          nullable: true
+          description: Текстовое сообщение
+        field:
+          type: string
+          nullable: true
+          description: Имя поля в DTO, которое вызвало исключение
+        severity:
+          enum:
+          - error
+          - warning
+          - info
+          type: string
+
+    Del_CalcValidationMessage:
+      type: object
+      description: Сообщение об ошибке валидации
+      properties:
+        code:
+          type: string
           enum:
           - INVALID_ADDRESS_KEY_ID' - ФИАС не найден #новое значение
           - INTERVAL_INVALID` — Выбран некорректный интервал доставки
           - PAYMENT_TYPE_INVALID` — Выбран некорректный тип оплат
-          - PAYMENT_SYSTEM_INVALID` — Выбран некорректная форма оплаты (например СБП)
+          - PAYMENT_SYSTEM_INVALID` — Выбрана некорректная форма оплаты (например СБП)
           - UNAVAILABLE_PRODUCTS` — В корзине есть недоступные к заказу продукты
-          - DELIVERY_METHOD_INVALID` — Выбран ндоступный способ доставки
+          - DELIVERY_METHOD_INVALID` — Выбран нeдоступный способ доставки
           - DELIVERY_PROFILE_INVALID` — Выбран некорректный профиль доставки"
-          example: DELIVERY_PROFILE_INVALID
-        error:
-          type: array
-        status:
+          example: INVALID_ADDRESS_KEY_ID
+        message:
           type: string
-          example: fail
-    
-    ValidationMessage:
-                  type: object
-                  description: Сообщение об ошибке валидации
-                  properties:
-                    code:
-                      type: string
-                      nullable: true
-                    message:
-                      type: string
-                      nullable: true
-                      description: Текстовое сообщение
-                    field:
-                      type: string
-                      nullable: true
-                      description: Имя поля в DTO, которое вызвало исключение
-                    severity:
-                      enum:
-                      - error
-                      - warning
-                      - info
-                      type: string
-    OrderValidationError:
-      title: OrderValidationError
+          nullable: true
+          description: ФИАС не найден
+        field:
+          type: string
+          nullable: true
+          description: Имя поля в DTO, которое вызвало исключение
+          example: city_key_id
+        severity:
+          enum:
+          - error
+          - warning
+          - info
+          type: string
+
+    OrderValidationProblem:
+      title: OrderValidationProblem
       description: Массив проблем в передаваемой на расчёт модели
       type: array
       items:
@@ -10311,12 +10478,109 @@ components:
             - UNAVAILABLE_PRODUCTS` — В корзине есть недоступные к заказу продукты
             - DELIVERY_METHOD_INVALID` — Выбран ндоступный способ доставки
             - DELIVERY_PROFILE_INVALID` — Выбран некорректный профиль доставки"
-            example: INTERVAL_INVALID
+            example: DELIVERY_PROFILE_INVALID
           field:
             type: string
             description: Поле, в котором допущена ошибка
-            example: delivery_point
+            example: postamat_provider
           message:
             type: string
             description: Человекопонятное сообщение об ошибке
-            example: Недоступное время доставки
+            example: Провайдер ПВЗ недоступен
+
+
+
+  responses:
+    DefaultError:
+      description: Exceptions Response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DefaultErrorModel'
+    DefaultValidationMessage:
+      description: Сообщение об ошибке валидации
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DefaultValidationMessage'
+
+
+    MissingKeyID422:
+      description: Не переданы обязательные ФИАС-идентификаторы
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DefaultErrorModel"
+
+    ValidationError409:
+      description: Оформление заказа с выбранными условиями недоступно
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Del_CalcValidationMessage"
+          
+  examples:
+    DC_CITY_NOT_FOUND:
+        summary: Неверный ФИАС/индекс/координаты
+        description: DC вернул 200 и failureReason = CITY_NOT_FOUND 
+        value:
+          code: DELIVERY_PROFILE_INVALID
+          field: city_key_id
+          message: "[city_key_id] not found"
+          severity: error
+    DC_deliveryModes_unavailable:
+        summary: Выбранный способ доставки не доступен
+        description: в ответе DC отсуствует блок выбранного способа доставки 
+        value:
+          code: DELIVERY_METHOD_INVALID
+          field: delivery_id
+          message: "[delivery_id] для [city_key_id] not available"
+          severity: error
+    DC_STOCKS_NOT_AVAILABLE:
+        summary: В корзине есть недоступные к заказу товары
+        description: DC вернул 200 и failureReason = STOCKS_NOT_AVAILABLE
+        value:
+          code: UNAVAILABLE_PRODUCTS
+          field: cart.items
+          message: "[sku_id] unavailable"
+          severity: error
+    DC_paymentMethods_unavailable:
+            summary: Выбранный cпособ оплаты не доступен
+            description: в ответе DC  в объекте paymentMethods отсутствует code выбранного способа оплаты
+            value:
+              code: DELIVERY_METHOD_INVALID
+              field: ps_id
+              message: "[ps_id] unvailable"
+              severity: error
+    DC_pickup_unavailable:
+            summary: Выбранный магазин не доступен
+            description: DC вернул 200 и failureReason = ENTRIES_NOT_FOUND
+            value:
+              code: DELIVERY_PROFILE_INVALID
+              field: shop_guid
+              message: "[shop_guid] unvailable"
+              severity: error
+    DC_postamat_unavailable:
+            summary: Выбранный ПВЗ не доступен
+            description: DC вернул 200 и failureReason = ENTRIES_NOT_FOUND
+            value:
+              code: DELIVERY_PROFILE_INVALID
+              field: shop_guid
+              message: "[postamat_code], [postamat_provider] unvailable "
+              severity: error
+    DC_INTERVAL_INVALID:
+            summary: Выбраннная дата доставки не доступна
+            description: в ответе DC в объекте possibleDates отсутствует выбранный deliveryDate
+            value:
+              code: INTERVAL_INVALID
+              field: delivery_date
+              message: "[delivery_date] for [delivery_profile_id] unvailable "
+              severity: error
+    DC_SLOTS_INVALID:
+            summary: Выбраннная дата доставки не доступна
+            description: в ответе DC в объекте possibleDates отсутствует timeIntervals, соответствующий выбранному
+            value:
+              code: SLOTS_INVALID
+              field: delivery_interval_from
+              message: "[delivery_interval_from], [delivery_interval_to] for [delivery_profile_id] unvailable "
+              severity: error              
