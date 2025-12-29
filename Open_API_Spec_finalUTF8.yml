@@ -22,10 +22,9 @@ tags:
 paths:
   /api/v1/geo/locality:
     get:
-      summary: Адреса по координатам
+      summary: Город по координатам
       description:  |
-       -  Возвращает ближайшие адреса (дома, улицы, города)  с ФИАСами
-        - Адреса в ответе идут в порядке удаления от заданных координат
+       Возвращает данные населенного пункта с ФИАСами по координатам
         - Только для России
       tags:
       - geo
@@ -81,12 +80,6 @@ paths:
                               $ref: '#/components/schemas/Settlement'
                             settlement_key_id:
                               $ref: '#/components/schemas/SettlementKeyID'
-                            street:
-                              $ref: '#/components/schemas/Street'
-                            house:
-                              $ref: '#/components/schemas/House'
-                            postal_code: 
-                              $ref: '#/components/schemas/PostalCode'
                             geometry:
                               type: object
                               properties:
@@ -107,20 +100,16 @@ paths:
                   value:
                     items:
                     - service: dadata
-                      value: "Санкт-Петербург, поселок Лисий Нос, Большой пр-кт, д 10"
+                      value: "Санкт-Петербург, поселок Лисий Нос"
                       data:
                         country: "Россия"
                         country_code: "RU"
                         region: "Санкт-Петербург"
                         region_key_id: "c2deb16a-0330-4f05-821f-1d09c93331e6"
-                        area: 
                         city: "Санкт-Петербург"
                         city_key_id: "c2deb16a-0330-4f05-821f-1d09c93331e6"
-                        settlement: "Москва"
+                        settlement: "поселок Лисий Нос"
                         settlement_key_id: "43fdf07b-c22d-42af-9655-6684ee243c21"
-                        street: "Большой пр-кт"
-                        house: 10
-                        postal_code: "197755"
                         geometry:
                           location:
                             lat: 59.773411
