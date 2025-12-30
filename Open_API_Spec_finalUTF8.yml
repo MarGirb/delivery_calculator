@@ -136,7 +136,7 @@ paths:
         * Возвращает расчет способов оплаты и доставки для текущего заказа с учетом переданных параметров.
         * Если calculated_by_dc = true:
           - для courier должна быть заполнена пара settlement + settlement_key_id И/ИЛИ city + city_key_id 
-          - для postamat и pickup должен быть заполнен city_key_id
+          - для postamat и pickup должен быть заполнен city_key_id И/ИЛИ settlement_key_id
 
       tags:
       - order
