@@ -9736,7 +9736,7 @@ components:
         name: user_id
         description: GUID пользователя
         in: query            
-        required: true
+        required: false
         schema:
           $ref: '#/components/schemas/UserID'
       UserAreaID:
