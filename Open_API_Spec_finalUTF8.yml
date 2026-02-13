@@ -209,130 +209,191 @@ paths:
                   fields:
                     deprecated: true
                     allOf:
-                    - title: Fields
-                      description: >-
-                        Конфигурация полей и валидации
+                      - title: Fields
+                        description: >-
+                          Конфигурация полей и валидации
+                        type: object
+                        properties:
+                          # --- address block ---
+                          address:
+                            type: string
+                            example: string|address|required
+                          house:
+                            type: string
+                            example: string|required
+                          street:
+                            type: string
+                            example: string|required
+                          apartment:
+                            type: string
+                            example: string|nullable
+                          postal_code:
+                            type: string
+                            example: string|required
+                          front_door:
+                            type: string
+                            example: string
+                          floor:
+                            type: string
+                            example: string
+                          intercom:
+                            type: string
+                            example: string
+                          coupon:
+                            type: string
+                            example: coupon|string
+                          comment:
+                            type: string
+                            example: nullable|string|max:255
 
-                        *TODO: Некорректная модель, должна быть переработана в следующих версиях на массив моделей*
-                      type: object
-                      properties:
-                        intercom:
-                          type: string
-                          example: string
-                        locale:
-                          type: string
-                          example: string
-                        coupon:
-                          type: string
-                          example: coupon|string
-                        geo_service:
-                          type: string
-                          example: string|required|max:255
-                        user_first_name:
-                          type: string
-                          example: required|string|max:255
-                        user_last_name:
-                          type: string
-                          example: required|string|max:255
-                        user_email:
-                          type: string
-                          example: required|email||max:255
-                        user_phone:
-                          type: string
-                          example: string|required|phone
-                        delivery_id:
-                          type: string
-                          example: integer|required
-                        delivery_service_id:
-                          type: string
-                          example: integer|required
-                        delivery_date:
-                          type: string
-                          example: date_format:Y-m-d
-                        delivery_interval_from:
-                          # новый Параметр
-                          type: string
-                          example: time_format:hh-mm-ss
-                        delivery_interval_to:
-                          # новый Параметр
-                          type: string
-                          example: time_format:hh-mm-ss
-                        calculated_by_dc:
-                          # новый Параметр
-                          type: string
-                          example: boolean
-                        calculation_success:
-                          # новый Параметр
-                          type: string
-                          example: boolean
-                        paysystem_id:
-                          type: string
-                          example: integer|required
-                        hide_discounts:
-                          type: string
-                          example: boolean
-                        certificate:
-                          type: string
-                          example: certificate
-                        #Все необходимые данные адреса содержатся в профиле доставки, достаточно delivery_profile_id
-                        address:
-                          type: string
-                          example: string|address|required
-                        house:
-                          type: string
-                          example: string|required|max:255
-                        street:
-                          type: string
-                          example: string|required|max:255
-                        apartment:
-                          type: string
-                          example: string|max:255
-                        postal_code:
-                          type: string
-                          example: string|required|max:10
-                        area:
-                          type: string
-                          example: string|max:255
-                        front_door:
-                          type: string
-                          example: string
-                        floor:
-                          type: string
-                          example: string
-                        country:
-                          type: string
-                          example: string|required|max:255
-                        country_code:
-                          type: string
-                          example: string|required|max:255
-                        city:
-                          type: string
-                          example: string|required|max:255
-                        city_key_id:
-                          # новый Параметр
-                          type: string
-                          example: string|max:255
-                        region_key_id:
-                          # новый Параметр
-                          type: string
-                          example: string|max:255
-                        settlement:
-                          # новый Параметр
-                          type: string
-                          example: string|max:255
-                        settlement_key_id:
-                          # новый Параметр
-                          type: string
-                          example: string|max:255
-                        region:
-                          type: string
-                          example: string|required|max:255
-                        street_house:
-                          type: string
-                          example: string|max:255
-                        comment:
-                          type: string
-                          example: string|max:255
+                          # ---address block geo ---
+                          country:
+                            type: string
+                            example: string|required|max:255
+                          country_code:
+                            type: string
+                            example: string|required|max:255
+                          area:
+                            type: string
+                            example: string
+                          city:
+                            type: string
+                            example: string|required|max:255
+                          region:
+                            type: string
+                            example: string
+                          region_key_id:
+                            type: string
+                            example: string
+                          city_key_id:
+                            type: string
+                            example: string
+                          settlement:
+                            type: string
+                            example: string
+                          settlement_key_id:
+                            type: string
+                            example: string
+                          geo_service:
+                            type: string
+                            example: string|required
+                          # --- user ---
+                          user_id:
+                            type: string
+                            example: string
+                          user_area_id:
+                            type: string
+                            example: string
+                          user_first_name:
+                            type: string
+                            example: required|string|max:255
+                          user_last_name:
+                            type: string
+                            example: required|string|max:255
+                          user_email:
+                            type: string
+                            example: required|email||max:255
+                          user_phone:
+                            type: string
+                            example: string|required|phone
+                          user_email_verification_date:
+                            type: string
+                            example: date
+                          user_is_email_verified:
+                            type: string
+                            example: boolean
+                          user_created_at:
+                            type: string
+                            example: date
+                          user_updated_at:
+                            type: string
+                            example: date
+                          user_jivo_token:
+                            type: string
+                            example: string
+
+                          # --- nested user_address[...] fields ---
+                          "user_address[country_code]":
+                            type: string
+                            example: string
+                          "user_address[country]":
+                            type: string
+                            example: string
+                          "user_address[region]":
+                            type: string
+                            example: string
+                          "user_address[region_key_id]":
+                            type: string
+                            example: string
+                          "user_address[area]":
+                            type: string
+                            example: string
+                          "user_address[city]":
+                            type: string
+                            example: string
+                          "user_address[city_key_id]":
+                            type: string
+                            example: string
+                          "user_address[settlement]":
+                            type: string
+                            example: string
+                          "user_address[settlement_key_id]":
+                            type: string
+                            example: string
+                          "user_address[geo_service]":
+                            type: string
+                            example: string
+
+                          # --- delivery / payment ---
+                          delivery_id:
+                            type: string
+                            example: required|exists:delivery_systems,id
+                          delivery_profile_id:
+                            type: string
+                            example: integer
+                          paysystem_id:
+                            type: string
+                            example: required|exists:payment_systems,id
+                          city_id:
+                            type: string
+                            example: integer
+
+                          delivery_date:
+                            type: string
+                            example: required|date_format:Y-m-d
+                          delivery_interval_from:
+                            type: string
+                            example: required|date_format:H:i:s
+                          delivery_interval_to:
+                            type: string
+                            example: required|date_format:H:i:s
+
+                          calculated_by_dc:
+                            type: string
+                            example: boolean
+                          calculation_success:
+                            type: string
+                            example: boolean
+
+                          hide_discounts:
+                            type: string
+                            example: boolean
+                          certificate:
+                            type: string
+                            example: certificate
+
+                          # --- pickup / postamat / shop ---
+                          postamat_provider:
+                            type: string
+                            example: string
+                          postamat_code:
+                            type: string
+                            example: string
+                          shop_guid:
+                            type: string
+                            example: string
+
+
                   cart:
                     title: Cart
                     description: Корзина пользователя
